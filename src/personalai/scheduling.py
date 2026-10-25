@@ -11,6 +11,7 @@ from typing import Literal
 
 from .models import StrictModel, TZ
 from .model_client import call_model
+from .configuration import ConfigService
 from .scheduled_models import Schedule, ScheduleOptions, report_markdown
 from .store import StoreError, canonical, digest
 from .tracking import TrackingService, entity
@@ -53,7 +54,7 @@ class Scheduler:
         return (item.data if item else Schedule().model_dump(mode='json'), item.version if item else 0)
 
     def model(self):
-        return self.service.settings()['model'].copy()
+        return ConfigService(self.store).model('schedule')
 
     def arm_path(self):
         return check_path(self.store.root, '.scheduler/consent.json')
@@ -95,7 +96,7 @@ class Scheduler:
             config, version = self.config()
             consent = self.authorized(config, version)
             try:
-                ready = self.model()['enabled'] and bool(self.app.state.vault.read(self.model()['base_url']))
+                ready = self.model()['enabled'] and bool(ConfigService(self.store).key(self.model(), self.app.state.vault))
             except StoreError:
                 ready = False
             at = self.clock()
@@ -136,7 +137,7 @@ class Scheduler:
                     raise StoreError('定时设置或模型已变化，请重新预览。')
                 config = Schedule(**preview['data'], model_fingerprint=digest(canonical(self.model())),
                                   effective_from=self.clock().isoformat(timespec='seconds')).model_dump()
-                if config['enabled'] and (not self.model()['enabled'] or not self.app.state.vault.read(self.model()['base_url'])):
+                if config['enabled'] and (not self.model()['enabled'] or not ConfigService(self.store).key(self.model(), self.app.state.vault)):
                     raise StoreError('请先保存并启用模型配置与匹配密钥；不会自动启用。', 422)
                 item = entity('schedule', config, 'schedule', self.store.entities.get('schedule'))
                 return [], [], {'entity': item.model_dump(mode='json')}, [item]
@@ -245,7 +246,7 @@ class Scheduler:
                     current, current_version = self.config()
                     if current_version != version or not self.authorized(current, current_version):
                         raise StoreError('设置或授权已变化，未发送资料。')
-                    key = self.app.state.vault.read(model['base_url'])
+                    key = ConfigService(self.store).key(model, self.app.state.vault)
                 assessment = call_model(model, key, inputs, self.app.state.model_transport, report=True)
                 return self.update_run(identifier, {'status': 'succeeded', 'finished_at': self.clock().isoformat(),
                     'message': 'AI 分析已生成；建议未执行。补跑以实际执行日为当天，不回填过去的事实。',

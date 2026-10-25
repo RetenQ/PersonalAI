@@ -17,6 +17,7 @@ from .models import CATEGORIES, TZ, CreateRecord, Decision, ProposeRevision
 from .store import Store, StoreError
 from .tracking_routes import register_tracking
 from .tracking import TrackingService
+from .configuration import ConfigService, register_configuration
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,17 +33,18 @@ def parse_day(value: str) -> date:
         raise HTTPException(422, "日期请使用 YYYY-MM-DD、今天、昨天或明天。")
 
 
-def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, port: int = 8765) -> FastAPI:
+def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, port: int = 8765, enabled_plugins: list[str] | None = None, config_path: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
-        app.state.scheduler.start()
+        app.state.plugins.lifecycle('start')
         try:
             yield
         finally:
-            app.state.scheduler.stop()
+            app.state.plugins.lifecycle('stop')
     app = FastAPI(title="PersonalAI 本地记录", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     store = Store(data_dir or PROJECT_ROOT / "data")
     app.state.store = store
+    app.state.port = port
     app.state.model = UnconfiguredModel()
     csrf = secrets.token_urlsafe(32)
     session = secrets.token_urlsafe(32)
@@ -59,6 +61,9 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
             if not secrets.compare_digest(request.headers.get("x-csrf-token", ""), csrf) or not secrets.compare_digest(request.cookies.get("personalai_session", ""), session):
                 return JSONResponse({"detail": "会话已失效，请刷新页面后重试"}, status_code=403)
+        blocked = app.state.plugins.blocked_path(request.url.path) if hasattr(app.state, 'plugins') else None
+        if blocked:
+            return JSONResponse({'detail': '该功能插件未启用：' + blocked}, status_code=409)
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -89,13 +94,13 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
     def status():
         with store.mutex:
             store.reload()
-            config = TrackingService(store).settings()['model'] if not store.errors else {'enabled': False, 'base_url': ''}
+            config = ConfigService(store).model('goal') if not store.errors else {'enabled': False, 'base_url': ''}
             try:
-                model_ready = config['enabled'] and bool(app.state.vault.read(config['base_url']))
+                model_ready = config['enabled'] and bool(ConfigService(store).key(config, app.state.vault))
             except StoreError:
                 # A lost Windows key must not block access to local records or settings.
                 model_ready = False
-            return {"version": "0.2.0", "timezone": "Asia/Shanghai", "today": datetime.now(TZ).date().isoformat(),
+            return {"version": "0.3.0", "timezone": "Asia/Shanghai", "today": datetime.now(TZ).date().isoformat(),
                     "model": {"status": "configured" if model_ready else "not_configured", "message": "目标分析逐次确认；定时分析须单独授权数据范围。输入原文不会自动进行 AI 理解。"},
                     "storage": {"healthy": not store.errors, "errors": store.errors},
                     "user_files": store.user_files_status(),
@@ -103,6 +108,8 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
 
     @app.post("/api/records")
     def create_record(payload: CreateRecord):
+        if payload.kind=='task' and not app.state.plugins.active('tracking'):
+            raise StoreError('任务插件未启用。',409)
         return store.create(payload)
 
     @app.get("/api/records")
@@ -128,6 +135,10 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
 
     @app.post("/api/records/{record_id}/revisions")
     def propose(record_id: UUID, payload: ProposeRevision):
+        with store.mutex:
+            store.reload()
+            if store.get(str(record_id)).kind=='task' and not app.state.plugins.active('tracking'):
+                raise StoreError('任务插件未启用，历史只读。',409)
         return store.propose_revision(str(record_id), payload)
 
     @app.get("/api/proposals")
@@ -139,6 +150,11 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
 
     @app.post("/api/proposals/{proposal_id}/decision")
     def decide(proposal_id: UUID, payload: Decision):
+        with store.mutex:
+            store.reload(); store.require_healthy()
+            proposal=store.proposals.get(str(proposal_id))
+            if proposal and payload.decision=='accept' and not app.state.plugins.active('tracking') and (proposal.action=='create_task' or proposal.before and proposal.before.kind=='task'):
+                raise StoreError('任务插件未启用，不能接受该修改。',409)
         return store.decide(str(proposal_id), payload)
 
     @app.get("/api/reports/daily")
@@ -175,8 +191,16 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
         return verify_backup(b"".join(chunks))
 
     register_tracking(app, store, parse_day)
+    register_configuration(app, store)
     from .scheduling import register_scheduling
     register_scheduling(app, store)
+    from .plugins import register_plugins
+    from .runtime import DEFAULT_PLUGINS
+    register_plugins(app, store, DEFAULT_PLUGINS if enabled_plugins is None else enabled_plugins, config_path)
+    from .integrations import register_integrations
+    from .quick_entry import register_quick_entry
+    register_integrations(app, store)
+    register_quick_entry(app, store)
     frontend = frontend_dir or PROJECT_ROOT / "frontend" / "dist"
     if (frontend / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=frontend / "assets", follow_symlink=False), name="assets")

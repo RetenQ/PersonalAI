@@ -28,5 +28,8 @@ dist/
 .cache/
 *.tsbuildinfo
 test-results/
+/frontend/test-results-*/
 playwright-report/
 
+
+/config/server.local.json

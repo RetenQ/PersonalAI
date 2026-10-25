@@ -1,5 +1,7 @@
 # v0.2 接口与扩展约定
 
+> v0.3 保留这些业务接口；新增分区配置、插件与外部只读协议分别见 [配置说明](MODULARITY_V0_3.md)、[插件协议](PLUGINS_V1.md)、[只读接口](INTEGRATIONS_V1.md)。
+
 所有接口只供本机页面使用。先 GET `/api/session`，保留 cookie；POST 同时提交返回的 `csrf_token` 为 `X-CSRF-Token`。不开放跨站 CORS，不提供外部应用绕过会话的接口。
 
 ## 写入与确认

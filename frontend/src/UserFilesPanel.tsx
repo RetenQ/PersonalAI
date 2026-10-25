@@ -13,7 +13,7 @@ export function UserFilesWarning({ status }: { status?: UserFilesStatus }) {
 export function UserFilesPanel({ revision = 0 }: { revision?: number }) {
   const [status, setStatus] = useState<UserFilesStatus>();
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
-  useEffect(() => { let active = true; api<UserFilesStatus>('/api/user-files').then(r => { if (active) { setStatus(r); setError(''); } }).catch(e => { if (active) setError(e.message); }); return () => { active = false; }; }, [revision]);
+  useEffect(() => { let active = true; const controller = new AbortController(); api<UserFilesStatus>('/api/user-files', { signal: controller.signal }).then(r => { if (active) { setStatus(r); setError(''); } }).catch(e => { if (active) setError(e.message); }); return () => { active = false; controller.abort(); }; }, [revision]);
   return <section className="panel module" aria-label="用户资料文件">
     <h2>用户资料文件</h2>
     <p className="module-description">网页维护，Markdown 自动整理。档案、目标、任务、状态、日志和待确认内容分别存放，每份资料保留来源与修订链接。</p>

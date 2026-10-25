@@ -72,6 +72,15 @@ def call_model(config, key, inputs, transport=None, *, report=False):
             '不编造进度百分比或健康指标。下一步参考与建议均未成为正式任务。'
             '用中文输出六部分结构，每部分可以为空：事实、进展分析、问题、建议、下一步、长期目标关系。'
             '严格符合 JSON Schema：' + json.dumps(schema, ensure_ascii=False))
+        factual_ids = [e['id'] for e in inputs['items'] if e['kind'] in {'note', 'log', 'checkin', 'state'}]
+        goal_ids = [e['id'] for e in inputs['items'] if e['kind'] == 'goal']
+        body['messages'][0]['content'] += (
+            '\n提交前逐项核对：facts 只描述已经记录的活动、回应或状态，不列目标设定、任务计划或追踪配置。'
+            '目标当前值和任务进度字段属于计划/配置依据，不是活动证据，可在 reflection 中与日志比较。'
+            'facts 每一条 source_ids 必须至少包含下列一个活动来源编号：' + json.dumps(factual_ids) +
+            '。没有可用编号则 facts 返回空数组；禁止添加编号或给无关事实套用日志引用。'
+            'long_term 每一条必须引用下列一个目标编号：' + json.dumps(goal_ids) +
+            '。所有引用必须从输入 sources 原样复制完整编号；无法满足时删去该条并在 missing 说明。')
     try:
         with httpx.Client(timeout=httpx.Timeout(60, connect=10), follow_redirects=False, transport=transport, trust_env=False) as client:
             with client.stream('POST', config['base_url'].rstrip('/') + '/chat/completions',

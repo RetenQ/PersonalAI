@@ -21,6 +21,10 @@ export interface Daily {
 }
 
 let csrf = '';
+let leavingPage = false;
+const pendingReads = new Set<AbortController>();
+window.addEventListener('pagehide', () => { leavingPage = true; for (const controller of pendingReads) controller.abort(); });
+window.addEventListener('pageshow', () => { leavingPage = false; });
 const attempts = new Map<string, string>();
 export async function connect() {
   const response = await fetch('/api/session');
@@ -28,12 +32,23 @@ export async function connect() {
   csrf = (await response.json()).csrf_token;
 }
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, ...init.headers } });
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(typeof body?.detail === 'string' ? body.detail : '操作未完成，请保留输入并重试。');
+  if (leavingPage) throw new Error('页面正在刷新，请在新页面继续。');
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (init.signal?.aborted) abort();
+  init.signal?.addEventListener('abort', abort, { once: true });
+  if (!init.method || init.method === 'GET') pendingReads.add(controller);
+  try {
+    const response = await fetch(path, { ...init, signal: controller.signal, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, ...init.headers } });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(typeof body?.detail === 'string' ? body.detail : '操作未完成，请保留输入并重试。');
+    }
+    return await response.json();
+  } finally {
+    pendingReads.delete(controller);
+    init.signal?.removeEventListener('abort', abort);
   }
-  return response.json();
 }
 export async function mutate<T>(path: string, body: object): Promise<T> {
   const signature = JSON.stringify([path, body]);

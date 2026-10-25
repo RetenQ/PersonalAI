@@ -1,4 +1,4 @@
-param([ValidateRange(1024,65535)][int]$Port = 8765)
+param([ValidateRange(1024,65535)][int]$Port, [string]$Config, [string]$DataDir)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $pythonPath = Join-Path $projectRoot '.venv\Scripts\python.exe'
@@ -10,6 +10,10 @@ if (!(Test-Path -LiteralPath (Join-Path $projectRoot 'frontend\dist\index.html')
 }
 Push-Location $projectRoot
 try {
-    & $pythonPath -m personalai --port $Port
+    $launchArgs = @('-m', 'personalai')
+    if ($PSBoundParameters.ContainsKey('Port')) { $launchArgs += @('--port', $Port) }
+    if ($Config) { $launchArgs += @('--config', $Config) }
+    if ($DataDir) { $launchArgs += @('--data-dir', $DataDir) }
+    & $pythonPath @launchArgs
     if ($LASTEXITCODE -ne 0) { throw 'PersonalAI did not start. See the message above.' }
 } finally { Pop-Location }

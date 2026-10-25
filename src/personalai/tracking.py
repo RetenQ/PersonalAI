@@ -27,8 +27,8 @@ class TrackingService:
         return item
 
     def settings(self):
-        item = self.store.entities.get('settings')
-        return item.data if item else Settings().model_dump(mode='json')
+        from .configuration import ConfigService
+        return ConfigService(self.store).combined()
 
     def validate(self, kind, data, before=None):
         try:
@@ -58,6 +58,9 @@ class TrackingService:
         return data
 
     def write(self, kind, request, identifier=None):
+        if kind == 'settings' and any(k.startswith('config:') for k in self.store.entities):
+            from .configuration import ConfigService
+            return ConfigService(self.store).legacy_save(request)
         def prepare():
             key = identifier or str(uuid4())
             if kind in {'settings', 'profile'}:
@@ -98,6 +101,9 @@ class TrackingService:
         return self.store.transaction(request.request_id, f'write:{kind}:{identifier}', request.model_dump(mode='json'), prepare, extension=True)
 
     def decide(self, key, request):
+        if self.store.entities.get(key) and self.store.entities[key].kind == 'core/config-change':
+            from .configuration import ConfigService
+            return ConfigService(self.store).decide(key, request)
         def prepare():
             item = self.get(key)
             if item.kind not in {'change', 'suggestion'} or item.data['status'] != 'pending':
@@ -108,13 +114,15 @@ class TrackingService:
                 before = self.store.entities.get(change['target_id'])
                 if change['expected_version'] != (before.version if before else 0):
                     raise StoreError('提案已过期，不能覆盖新版本。请拒绝后重新提出。')
+                if change['target_kind'] == 'settings' and any(k.startswith('config:') for k in self.store.entities):
+                    raise StoreError('设置已升级为独立分区，请重新提出修改。')
                 data = self.validate(change['target_kind'], change['after'], before)
                 output.append(entity(change['target_kind'], data, change['target_id'], before))
             output.append(entity(item.kind, {**item.data, 'status': 'accepted' if request.decision == 'accept' else 'rejected'}, item.id, item))
             return [], [], {'entities': [e.model_dump(mode='json') for e in output]}, output
         return self.store.transaction(request.request_id, 'tracking-decision:' + key, request.model_dump(mode='json'), prepare, extension=True)
 
-    def snapshot(self, day: date, goal_id=None, slot=None):
+    def snapshot(self, day: date, goal_id=None, slot=None, *, include_user_files=True):
         self.store.require_healthy()
         values = list(self.store.entities.values())
         goals = [e for e in values if e.kind == 'goal' and (not goal_id or e.id == goal_id)]
@@ -135,8 +143,9 @@ class TrackingService:
         analyses = [{**e.model_dump(mode='json'), 'stale': any(versions.get(k) != v for k, v in e.data['sources'].items())}
                     for e in values if e.kind == 'analysis' and (not goal_id or e.data['goal_id'] == goal_id)]
         return {'schema_version': 2, 'generated_at': now(), 'date': day.isoformat(), 'slot': slot, 'timezone': 'Asia/Shanghai',
-                'year': year_time(day), 'settings': self.settings(), 'user_files': self.store.user_files_status(),
-                'settings_version': self.store.entities['settings'].version if 'settings' in self.store.entities else 0,
+                'year': year_time(day), 'settings': self.settings(), 'user_files': self.store.user_files_status() if include_user_files else ({'healthy':False,'error':self.store.user_files_error} if self.store.user_files_error else None),
+                'settings_version': __import__('personalai.configuration', fromlist=['ConfigService']).ConfigService(self.store).version(),
+                'config_pending': sum(1 for e in values if e.kind in {'core/config-change','core/plugin-change'} and e.data['status']=='pending'),
                 'goals': [{**e.model_dump(mode='json'), 'progress': goal_progress(e.data)} for e in goals], 'tasks': tasks,
                 'logs': [e.model_dump(mode='json') for e in values if e.kind == 'log' and selected(e)],
                 'checkins': [e.model_dump(mode='json') for e in values if e.kind == 'checkin' and selected(e)],
@@ -171,7 +180,7 @@ class TrackingService:
 
 def export_snapshot(snapshot):
     # Display preferences, API configuration and unselected personal status never enter a progress export.
-    return {k: v for k, v in snapshot.items() if k not in {'settings', 'settings_version', 'states', 'pending', 'decisions', 'user_files'}}
+    return {k: v for k, v in snapshot.items() if k not in {'settings', 'settings_version', 'states', 'pending', 'decisions', 'user_files','config_pending'}}
 
 
 def markdown_export(snapshot):

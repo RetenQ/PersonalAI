@@ -60,7 +60,7 @@ def safe_id(value):
     return sha(value.encode('utf-8'))
 
 
-def render_user_files(store) -> dict[str, bytes]:
+def render_legacy_user_files(store) -> dict[str, bytes]:
     """Deterministic, location-independent documents, reproducible after restore."""
     store.require_healthy()
     settings = store.entities.get('settings')
@@ -290,6 +290,30 @@ def check_path(root: Path, relative: str) -> Path:
         if current.is_symlink() or current.is_junction():
             raise OSError('linked paths are not supported')
     return current
+
+
+def render_user_files(store):
+    # Old snapshots retain their byte-exact renderer. New documents are deterministic
+    # even without the originating plugin installed.
+    docs = render_legacy_user_files(store)
+    extensions = [e for e in store.entities.values() if '/' in e.kind]
+    if not extensions:
+        return docs
+    links = []
+    for e in extensions:
+        path = f'states/extension-{safe_id(e.id)}.md'
+        title = e.kind + ' · ' + e.id
+        body = f'# {title}\n\n版本：{e.version} · 更新：{e.updated_at}\n\n'
+        body += (e.readable or '```json\n' + json.dumps(e.data, ensure_ascii=False, indent=2) + '\n```') + '\n'
+        docs[path] = body.encode('utf-8')
+        links.append(f'- [{title}]({path})')
+    docs['README.md'] += ('\n## 分区配置与插件资料\n\n' + '\n'.join(links) + '\n').encode('utf-8')
+    # Keep original documents intact for history; point readers to current display data.
+    from .configuration import ConfigService
+    effective = ConfigService(store).get('user')['data']
+    docs['profile/PROFILE.md'] += ('\n## 当前展示资料（分区配置）\n\n' +
+        '\n'.join(f'- {k}：{v or "未记录"}' for k, v in effective.items()) + '\n').encode('utf-8')
+    return docs
 
 
 def atomic_write(path, raw):

@@ -250,6 +250,23 @@ def test_schedule_writes_need_session(env):
     assert client.post('/api/schedule/pause', json={'request_id': str(uuid4())}).status_code == 403
 
 
+@pytest.mark.parametrize('citation', ['goal', 'task', 'tracking', 'log'])
+def test_real_provider_regression_plans_cannot_be_reported_as_activity(citation):
+    from personalai.model_client import call_model
+    inputs = {'items': [{'id': kind, 'kind': kind} for kind in ['goal', 'task', 'tracking', 'log']],
+              'sources': {kind: 1 for kind in ['goal', 'task', 'tracking', 'log']}}
+    result = {section: [] for section in ['facts', 'reflection', 'issues', 'suggestions', 'next_steps', 'long_term', 'missing']}
+    result['facts'] = [{'text': '已阅读两章', 'source_ids': [citation]}]
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
+        'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(result)}}]}))
+    config = {'enabled': True, 'base_url': 'https://provider.example', 'model': 'sample', 'response_format': 'json_object'}
+    if citation == 'log':
+        assert call_model(config, 'sample-key', inputs, transport, report=True).facts[0].source_ids == ['log']
+    else:
+        with pytest.raises(StoreError, match='来源校验失败'):
+            call_model(config, 'sample-key', inputs, transport, report=True)
+
+
 @pytest.mark.parametrize('stamp', ['2027-01-01T00:00:00+08:00', '2028-03-01T00:00:00+08:00'])
 def test_midnight_year_and_leap_boundaries(env, stamp):
     _, client, scheduler, clock, calls = env

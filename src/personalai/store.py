@@ -11,6 +11,7 @@ import portalocker
 
 from .models import CreateRecord, Decision, Event, Proposal, ProposeRevision, Record, RecordFields, now
 from .tracking_models import Entity, EventV2
+from .extensions import PluginEntity, EventV3
 
 
 class StoreError(Exception):
@@ -48,7 +49,9 @@ def decode_event(data: bytes) -> Event:
     envelope = json.loads(text.split("\n---\n", 1)[0][4:])
     if digest(canonical(envelope["event"])) != envelope["checksum"]:
         raise ValueError("checksum mismatch")
-    event_type = EventV2 if envelope['event'].get('schema_version') == 2 else Event
+    event_type = {1: Event, 2: EventV2, 3: EventV3}.get(envelope['event'].get('schema_version', 1))
+    if event_type is None:
+        raise ValueError('unsupported event version')
     event = event_type.model_validate(envelope["event"])
     if encode_event(event) != data:
         raise ValueError("content changed or noncanonical")
@@ -160,7 +163,7 @@ class Store:
                 return previous.result
             prepared = prepare()
             records, proposals, result = prepared[:3]
-            event_type = EventV2 if extension else Event
+            event_type = (EventV3 if any(isinstance(e, PluginEntity) for e in prepared[3]) else EventV2) if extension else Event
             extra = {'entities': prepared[3]} if extension else {}
             event = event_type(sequence=self.sequence + 1, request_id=request_id,
                           fingerprint=fingerprint, timestamp=now(), previous_hash=self.last_hash,

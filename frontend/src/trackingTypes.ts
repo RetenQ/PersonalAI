@@ -17,6 +17,7 @@ export interface Change { target_id: string; target_kind: string; expected_versi
 export interface Suggestion { text: string; analysis_id: string; goal_id: string; status: string }
 export type Pending = Entity<Change> & { kind: 'change' } | Entity<Suggestion> & { kind: 'suggestion' };
 export interface DashboardData {
+  config_pending?: number;
   user_files?: import('./UserFilesPanel').UserFilesStatus;
   date: string; settings: Settings; settings_version: number;
   year: { year: number; remaining_days: number; elapsed_percent: number };

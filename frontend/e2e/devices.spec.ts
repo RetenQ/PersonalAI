@@ -50,6 +50,6 @@ test('触控导航、短屏表单滚动与旋转后保留输入', async ({ page 
   await dialog.getByRole('button', { name: '关闭窗口' }).tap();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
-  await page.screenshot({ path: info.outputPath('touch-overview.png'), fullPage: true });
+  await page.screenshot({ path: info.outputPath('touch-overview.png'), fullPage: true, scale: 'css' });
   expect(errors).toEqual([]);
 });

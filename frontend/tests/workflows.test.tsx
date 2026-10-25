@@ -91,23 +91,29 @@ describe('recording and approval workflows', () => {
   });
 });
 
-it('settings visibility changes wait for confirmation before being applied', async () => {
-  const user = userEvent.setup(); let persisted = structuredClone(settings); let version = 1; let proposed = persisted;
-  apiMock.mockImplementation(async () => ({ settings: structuredClone(persisted), version, key_configured: false, key_error: '', model_ready: false, data_directory: 'local-data' }));
-  mutateMock.mockImplementation(async (path, body) => {
-    if (path.includes('/decision')) { persisted = proposed; version = 2; return {}; }
-    proposed = (body as {data: Settings}).data;
-    return { change: { id: 'settings-change', kind: 'change', version: 1, created_at: stamp, updated_at: stamp, data: { target_id: 'settings', target_kind: 'settings', expected_version: 1, before: persisted, after: proposed, reason: '更新设置', status: 'pending' } } };
+it('saves layout immediately without submitting an unfinished profile edit', async () => {
+  const user = userEvent.setup();
+  const state: any={sections:{user:{data:{name:'',bio:'',focus:''},version:0},ui:{data:{order:settings.order,hidden:[]},version:0},types:{data:{task_types:[]},version:0},models:{data:{connections:[],bindings:{goal:null,schedule:null}},version:0}}};
+  apiMock.mockImplementation(async path => {
+    if(path==='/api/config/sections')return structuredClone(state);
+    if(path==='/api/config/connections/status')return {connections:[]};
+    if(path==='/api/plugins')return {plugins:[]};
+    if(path==='/api/plugin-data')return {entities:[]};
+    if(path==='/api/config/changes')return {changes:[]};
+    if(path==='/api/integration-settings')return {enabled:false,scopes:[],tokens:[]};
+    if(path==='/api/schedule')return {config:{enabled:false,times:[],scopes:[]}};
+    if(path==='/api/profile')return {profile:{personality:'',values:'',preferences:'',boundaries:''},version:0};
+    return {healthy:true};
   });
+  mutateMock.mockImplementation(async (path, body) => { expect(path).toBe('/api/config/sections/ui'); state.sections.ui={data:(body as any).data,version:1};return {entity:{}}; });
   render(<SettingsPage ready backup={vi.fn()}/>);
-  await user.click(await screen.findByRole('checkbox', { name: '年度时间' }));
-  await user.click(screen.getByRole('button', { name: '保存／预览设置修改' }));
-  const dialog = await screen.findByRole('dialog', { name: '确认设置修改' });
-  expect(persisted.hidden).toEqual([]);
-  await user.click(within(dialog).getByRole('button', { name: '确认保存' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(persisted.hidden).toEqual(['year']);
-  expect((screen.getByRole('checkbox', { name: '年度时间' }) as HTMLInputElement).checked).toBe(false);
+  await user.type(await screen.findByLabelText('展示名称'),'尚未保存的资料');
+  await user.click(screen.getByRole('checkbox',{name:'年度时间'}));
+  await user.click(screen.getByRole('button',{name:'保存首页布局'}));
+  await waitFor(()=>expect(state.sections.ui.data.hidden).toEqual(['year']));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect((screen.getByLabelText('展示名称') as HTMLInputElement).value).toBe('尚未保存的资料');
+  expect(state.sections.user.data.name).toBe('');
 });
 
 it('invalidates export preview when its selection changes', async () => {

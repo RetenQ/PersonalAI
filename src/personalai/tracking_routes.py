@@ -12,6 +12,7 @@ from .model_client import SecretVault, call_model
 from .store import StoreError, canonical, digest
 from .tracking import TrackingService, entity, export_snapshot, markdown_export
 from .tracking_models import ModelConfig, Profile, WriteEntity
+from .configuration import ConfigService
 
 
 class Selection(StrictModel):
@@ -47,10 +48,10 @@ def register_tracking(app, store, parse_day):
         settings = service.settings()
         key_error = ''
         try:
-            configured = bool(vault.read(settings['model']['base_url']))
+            configured = bool(ConfigService(store).key(ConfigService(store).model('goal'), vault))
         except StoreError as exc:
             configured, key_error = False, exc.message
-        return {'settings': settings, 'version': store.entities['settings'].version if 'settings' in store.entities else 0,
+        return {'settings': settings, 'version': ConfigService(store).version(),
                 'key_configured': configured, 'key_error': key_error, 'data_directory': str(store.root),
                 'model_ready': configured and settings['model']['enabled']}
 
@@ -101,9 +102,9 @@ def register_tracking(app, store, parse_day):
     def test_model():
         with store.mutex:
             refresh()
-            config = service.settings()['model'].copy()
+            config = ConfigService(store).model('goal')
         # No personal content is read into this synthetic request.
-        assessment = call_model(config, vault.read(config['base_url']), {
+        assessment = call_model(config, ConfigService(store).key(config, vault), {
             'goal': {'id': 'sample-goal', 'title': '连接测试：读完一本示例书', 'criteria': '阅读十章'},
             'tasks': [], 'tracking': [], 'logs': [], 'sources': {'sample-goal': 1}}, app.state.model_transport)
         return {'message': '示例数据连接及格式校验通过；尚未验证真实目标分析质量。', 'assessment': assessment}
@@ -136,13 +137,20 @@ def register_tracking(app, store, parse_day):
 
     @app.post('/api/changes/{identifier}/decision')
     def decide(identifier: str, payload: Decision):
+        with store.mutex:
+            refresh()
+            item=service.get(identifier)
+            target=item.data.get('target_kind',item.kind)
+            owner={'goal':'tracking','tracking':'tracking','log':'journal','checkin':'journal','state':'journal','suggestion':'analysis'}.get(target)
+            if payload.decision=='accept' and owner and not app.state.plugins.active(owner):
+                raise StoreError('所属插件未启用，不能接受此修改。',409)
         return service.decide(identifier, payload)
 
     @app.get('/api/dashboard')
-    def dashboard(day: str = '今天'):
+    def dashboard(day: str = '今天', verify_user_files: bool = True):
         with store.mutex:
             refresh()
-            return service.snapshot(parse_day(day))
+            return service.snapshot(parse_day(day), include_user_files=verify_user_files)
 
     @app.get('/api/exports')
     def export(day: str = '今天', goal_id: UUID | None = None,
@@ -151,7 +159,7 @@ def register_tracking(app, store, parse_day):
             refresh()
             if goal_id:
                 service.get(str(goal_id), 'goal')
-            snapshot = export_snapshot(service.snapshot(parse_day(day), str(goal_id) if goal_id else None, slot))
+            snapshot = export_snapshot(service.snapshot(parse_day(day), str(goal_id) if goal_id else None, slot, include_user_files=False))
         return {'filename': f'personalai-progress-{snapshot["date"]}.{"md" if format == "markdown" else "json"}',
                 'content': markdown_export(snapshot) if format == 'markdown' else json.dumps(snapshot, ensure_ascii=False, indent=2)}
 
@@ -163,14 +171,14 @@ def register_tracking(app, store, parse_day):
         with store.mutex:
             refresh()
             state = settings_result()
-            return {'input': selected(payload), 'settings_version': state['version'],
-                    'model': state['settings']['model'], 'ready': state['model_ready']}
+            return {'input': selected(payload), 'settings_version': ConfigService(store).model_version('goal'),
+                    'model': ConfigService(store).model('goal'), 'ready': state['model_ready']}
 
     @app.get('/api/analyses')
     def list_analyses():
         with store.mutex:
             refresh()
-            return {'analyses': service.snapshot(datetime.now(TZ).date())['analyses']}
+            return {'analyses': service.snapshot(datetime.now(TZ).date(), include_user_files=False)['analyses']}
 
     @app.post('/api/analyses')
     def analyze(payload: Analyze):
@@ -188,10 +196,10 @@ def register_tracking(app, store, parse_day):
                     return previous.result
                 inputs = selected(payload)
                 state = settings_result()
-                if inputs['sources'] != payload.sources or state['version'] != payload.settings_version:
+                if inputs['sources'] != payload.sources or ConfigService(store).model_version('goal') != payload.settings_version:
                     raise StoreError('资料或模型配置已变化，请重新预览后分析。')
-                config = state['settings']['model'].copy()
-            assessment = call_model(config, vault.read(config['base_url']), inputs, app.state.model_transport)
+                config = ConfigService(store).model('goal')
+            assessment = call_model(config, ConfigService(store).key(config, vault), inputs, app.state.model_transport)
             def prepare():
                 analysis = entity('analysis', {'goal_id': str(payload.goal_id), 'model': config['model'], 'base_url': config['base_url'],
                     'sources': inputs['sources'], 'assessment': assessment.model_dump(mode='json')})
@@ -200,3 +208,6 @@ def register_tracking(app, store, parse_day):
             return store.transaction(payload.request_id, operation, payload.model_dump(mode='json'), prepare, extension=True)
         finally:
             analysis_lock.release()
+
+    from types import SimpleNamespace
+    app.state.goal_analysis = SimpleNamespace(preview=preview, analyze=analyze)

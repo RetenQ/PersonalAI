@@ -143,19 +143,14 @@ test('真实服务上的记录、确认、回顾、导出与响应式布局', as
     await fits(page);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: info.outputPath(`${name}-viewport.png`) });
-    await page.screenshot({ path: info.outputPath(`${name}.png`), fullPage: true });
+    await page.screenshot({ path: info.outputPath(`${name}.png`), fullPage: true, scale: 'css' });
   }
-  const settingsVersion = (await (await page.request.get('/api/settings')).json()).version;
   await page.getByLabel('展示名称').fill(`PersonalAI · ${suffix}`);
-  await page.getByRole('button', { name: '保存／预览设置修改' }).click();
-  if (settingsVersion > 0) {
-    await dialog.getByRole('button', { name: '确认保存' }).click();
-  } else {
-    await expect(page.getByRole('status').filter({ hasText: '设置已保存' })).toBeVisible();
-  }
+  await page.getByRole('button', { name: '保存展示资料' }).click();
+  await dialog.getByRole('button', { name: '确认保存' }).click();
   await expect(dialog).toHaveCount(0);
   await page.getByRole('textbox', { name: '近期关注', exact: true }).fill(`完成 ${suffix} 的浏览器验收`);
-  await page.getByRole('button', { name: '保存／预览设置修改' }).click();
+  await page.getByRole('button', { name: '保存展示资料' }).click();
   await dialog.getByRole('button', { name: '确认保存' }).click();
   await expect(dialog).toHaveCount(0);
   await page.reload();

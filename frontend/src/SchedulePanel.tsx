@@ -13,12 +13,13 @@ export function SchedulePanel({ modelRevision }: { modelRevision: number }) {
   const [form, setForm] = useState<Options>();
   const [preview, setPreview] = useState<Preview>();
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
-  async function load() {
+  async function load(preserveDraft = false) {
     const result = await api<Status>('/api/schedule');
     setStatus(result);
-    setForm({ enabled: result.config.enabled, times: result.config.times, scopes: result.config.scopes });
+    const next = { enabled: result.config.enabled, times: result.config.times, scopes: result.config.scopes };
+    setForm(old => preserveDraft && old ? old : next);
   }
-  useEffect(() => { load().catch(e => setError(e.message)); }, [modelRevision]);
+  useEffect(() => { setPreview(undefined); load(true).catch(e => setError(e.message)); }, [modelRevision]);
   async function run(action: () => Promise<void>) {
     if (busy) return;
     setBusy(true); setError(''); setNotice('');
