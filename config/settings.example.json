@@ -1,0 +1,11 @@
+{
+  "host": "127.0.0.1",
+  "port": 8765,
+  "timezone": "Asia/Shanghai",
+  "model": {
+    "provider": null,
+    "model": null,
+    "status": "not_configured"
+  },
+  "note": "This file documents defaults, not active settings. No API credentials are used in milestone 0.1."
+}

@@ -1,0 +1,32 @@
+# Private sources, runtime data and credentials
+/personal/
+/AGENTS.md
+# Interview-derived requirements and local handoff / personal case history
+/docs/REQUIREMENTS.md
+/docs/SYSTEM_REPORT.md
+/docs/ROADMAP.md
+/docs/DECISION_LOG.md
+/docs/HANDOFF_ORIGINAL.md
+/docs/UI_RELEASE_2026_10_24.md
+/data/
+/backups/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+.secrets/
+*.zip
+*.log
+# Local environments and generated files
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+node_modules/
+dist/
+.cache/
+*.tsbuildinfo
+test-results/
+playwright-report/
+
