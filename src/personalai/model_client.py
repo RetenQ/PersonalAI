@@ -13,14 +13,32 @@ from .tracking_models import Assessment
 
 class SecretVault:
     def __init__(self, root: Path):
+        self.root = root.resolve()
         self.path = root / '.secrets' / 'model-key.bin'
 
+    def master_key(self):
+        location = os.environ.get('PERSONALAI_MASTER_KEY_FILE')
+        if not location:
+            raise StoreError('服务器未配置独立的密钥保护文件。', 503)
+        path = Path(location).resolve()
+        if path == self.root or self.root in path.parents or not path.is_file():
+            raise StoreError('密钥保护文件必须位于数据目录外。', 503)
+        if os.name != 'nt' and path.stat().st_mode & 0o077:
+            raise StoreError('密钥保护文件只允许服务账户读取，请限制权限。', 503)
+        key = path.read_bytes()
+        if len(key) != 32:
+            raise StoreError('密钥保护文件格式错误。', 503)
+        return key
+
     def save(self, base_url, key):
-        if os.name != 'nt':
-            raise StoreError('本版本的密钥保护仅支持 Windows。', 503)
-        import win32crypt
         raw = json.dumps({'base_url': base_url.rstrip('/'), 'key': key}).encode()
-        protected = win32crypt.CryptProtectData(raw, 'PersonalAI model key', None, None, None, 1)
+        if os.name == 'nt' and not os.environ.get('PERSONALAI_MASTER_KEY_FILE'):
+            import win32crypt
+            protected = win32crypt.CryptProtectData(raw, 'PersonalAI model key', None, None, None, 1)
+        else:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+            nonce = os.urandom(12)
+            protected = b'PAI1' + nonce + AESGCM(self.master_key()).encrypt(nonce, raw, self.path.name.encode())
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temp = None
         try:
@@ -30,6 +48,7 @@ class SecretVault:
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temp, self.path)
+            self.path.chmod(0o600)
         except OSError as exc:
             raise StoreError('密钥保存失败，请重试。', 503) from exc
         finally:
@@ -40,12 +59,17 @@ class SecretVault:
         if not self.path.exists():
             return None
         try:
-            import win32crypt
-            raw = win32crypt.CryptUnprotectData(self.path.read_bytes(), None, None, None, 1)[1]
+            protected = self.path.read_bytes()
+            if protected.startswith(b'PAI1'):
+                from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+                raw = AESGCM(self.master_key()).decrypt(protected[4:16], protected[16:], self.path.name.encode())
+            else:
+                import win32crypt
+                raw = win32crypt.CryptUnprotectData(protected, None, None, None, 1)[1]
             result = json.loads(raw)
             return result['key'] if result['base_url'] == base_url.rstrip('/') else None
         except Exception as exc:
-            raise StoreError('密钥无法由当前 Windows 账户解密，请在设置中重新填写。', 503) from exc
+            raise StoreError('当前账户或服务器保护密钥无法解密，请检查密钥配置后重新填写。', 503) from exc
 
 
 def call_model(config, key, inputs, transport=None, *, report=False):

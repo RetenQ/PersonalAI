@@ -7,6 +7,7 @@ import { ProfilePanel } from './ProfilePanel';
 import { UserFilesPanel } from './UserFilesPanel';
 import { SchedulePanel } from './SchedulePanel';
 import { IntegrationPanel } from './IntegrationPanel';
+import { ClientPanel } from './ClientPanel';
 import { PluginPanel } from './plugins';
 
 type Data = Record<string, any>;
@@ -64,7 +65,7 @@ export function SettingsPage({ ready, backup }: { ready: boolean; backup: () => 
     <div id="settings-preferences"><Section name="ui" title="首页布局" initial={result.sections.ui} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><>{v.order.map((id:string,index:number)=><div className="module-setting" key={id}><label className="check-label"><input type="checkbox" checked={!v.hidden.includes(id)} onChange={e=>set({...v,hidden:e.target.checked?v.hidden.filter((x:string)=>x!==id):[...v.hidden,id]})}/>{moduleNames[id] || id}</label><div>{[-1,1].map(direction=><button key={direction} type="button" aria-label={(direction<0?'上移':'下移')+(moduleNames[id]||id)} disabled={index+direction<0 || index+direction>=v.order.length} onClick={()=>{const order=[...v.order];[order[index],order[index+direction]]=[order[index+direction],order[index]];set({...v,order});}}>{direction<0?'↑':'↓'}</button>)}</div></div>)}</>}</Section>
     <Section name="types" title="任务类型" initial={result.sections.types} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><>{v.task_types.map((t:Data,i:number)=><div className="type-setting" key={t.id}><label>类型 {i+1}<input required maxLength={80} value={t.name} onChange={e=>set({...v,task_types:v.task_types.map((x:Data)=>x.id===t.id?{...x,name:e.target.value}:x)})}/></label><label className="check-label"><input type="checkbox" checked={t.active} onChange={e=>set({...v,task_types:v.task_types.map((x:Data)=>x.id===t.id?{...x,active:e.target.checked}:x)})}/>启用</label></div>)}<button type="button" className="secondary" onClick={()=>set({...v,task_types:[...v.task_types,{id:crypto.randomUUID(),name:'',active:true}]})}>添加任务类型</button></>}</Section></div>
     <div id="settings-models"><ModelConnections initial={result.sections.models} changed={()=>{setRevision(v=>v+1);setFilesRevision(v=>v+1);}}/><ConnectionKeys revision={revision} changed={()=>setRevision(v=>v+1)}/>{plugins.active('analysis') && <SchedulePanel modelRevision={revision}/>}</div>
-    <div id="settings-extensions"><PluginPanel/><IntegrationPanel/></div>
+    <div id="settings-extensions"><PluginPanel/><IntegrationPanel/><ClientPanel/></div>
     <section className="panel module"><h2>数据与使用帮助</h2><p>资料在网页维护，Markdown 文件自动整理。服务配置修改后需手动重启；不提供公网开关。</p><button className="secondary" onClick={backup}>备份与恢复校验</button></section><UserFilesPanel revision={filesRevision}/>
   </div>;
 }

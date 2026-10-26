@@ -1,0 +1,8 @@
+# Replace with your own domain. Python is bound only to loopback.
+personal.example.com {
+    header Strict-Transport-Security "max-age=31536000"
+    request_body { max_size 34MB }
+    reverse_proxy 127.0.0.1:8765 {
+        flush_interval -1
+    }
+}

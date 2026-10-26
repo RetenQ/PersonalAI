@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from pydantic import Field
+from urllib.parse import urlsplit
 from .models import StrictModel
 
 DEFAULT_PLUGINS = ['tracking', 'journal', 'analysis', 'dashboard', 'exchange']
@@ -10,6 +11,7 @@ class RuntimeConfig(StrictModel):
     port: int = Field(default=8765, ge=1024, le=65535)
     data_dir: str | None = None
     plugins: list[str] = Field(default_factory=lambda: DEFAULT_PLUGINS.copy())
+    public_origin: str | None = None
 
 def load_runtime(path=None, *, port=None, data_dir=None):
     raw = {}
@@ -23,6 +25,11 @@ def load_runtime(path=None, *, port=None, data_dir=None):
     if data_dir is not None:
         raw['data_dir'] = str(Path(data_dir).resolve())
     config = RuntimeConfig.model_validate(raw)
+    if config.public_origin:
+        url = urlsplit(config.public_origin)
+        if url.scheme != 'https' or not url.hostname or url.username or url.password or url.query or url.fragment or url.path not in {'', '/'}:
+            raise ValueError('公网来源必须是无路径、无凭据的 HTTPS 地址。')
+        config.public_origin = config.public_origin.rstrip('/')
     if config.host != '127.0.0.1' or len(config.plugins) != len(set(config.plugins)):
         raise ValueError('只允许本机地址，插件编号不可重复。')
     return config

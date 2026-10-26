@@ -163,6 +163,16 @@ class Store:
                 return previous.result
             prepared = prepare()
             records, proposals, result = prepared[:3]
+            # Actor identity comes exclusively from authenticated request context.
+            # Keep it in the same atomic event as the business change.
+            from .access import actor_context
+            actor = actor_context.get()
+            if actor:
+                from .extensions import extension as make_extension
+                audit = make_extension('core/client-audit', {'actor_id': actor['id'], 'role': actor['role'],
+                    'operation': operation, 'request_id': str(request_id)}, identifier='audit:' + str(request_id))
+                prepared = (records, proposals, result, [*(prepared[3] if extension else []), audit])
+                extension = True
             event_type = (EventV3 if any(isinstance(e, PluginEntity) for e in prepared[3]) else EventV2) if extension else Event
             extra = {'entities': prepared[3]} if extension else {}
             event = event_type(sequence=self.sequence + 1, request_id=request_id,

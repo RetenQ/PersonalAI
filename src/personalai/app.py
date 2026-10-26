@@ -33,23 +33,38 @@ def parse_day(value: str) -> date:
         raise HTTPException(422, "日期请使用 YYYY-MM-DD、今天、昨天或明天。")
 
 
-def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, port: int = 8765, enabled_plugins: list[str] | None = None, config_path: str | None = None) -> FastAPI:
+def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, port: int = 8765, enabled_plugins: list[str] | None = None, config_path: str | None = None, public_origin: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
         app.state.plugins.lifecycle('start')
+        app.state.delivery.start()
         try:
             yield
         finally:
+            app.state.delivery.stop()
             app.state.plugins.lifecycle('stop')
     app = FastAPI(title="PersonalAI 本地记录", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     store = Store(data_dir or PROJECT_ROOT / "data")
     app.state.store = store
     app.state.port = port
     app.state.model = UnconfiguredModel()
+    from .access import Access, actor_context
+    from urllib.parse import urlsplit
+    if public_origin:
+        parsed = urlsplit(public_origin)
+        if parsed.scheme != 'https' or not parsed.hostname or parsed.path not in {'', '/'} or parsed.query or parsed.fragment or parsed.username:
+            raise ValueError('Invalid HTTPS public origin')
+        public_origin = public_origin.rstrip('/')
+    app.state.public_origin = public_origin
+    app.state.parse_day = parse_day
+    app.state.access = Access(store)
     csrf = secrets.token_urlsafe(32)
     session = secrets.token_urlsafe(32)
     hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
     origins = {f"http://{host}" for host in hosts}
+    if public_origin:
+        hosts.add(urlsplit(public_origin).netloc)
+        origins.add(public_origin)
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -58,13 +73,33 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
         origin = request.headers.get("origin")
         if (origin is not None and origin not in origins) or request.headers.get("sec-fetch-site") == "cross-site":
             return JSONResponse({"detail": "不接受其他网站发起的请求"}, status_code=403)
-        if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        path = request.url.path
+        public_auth = path in {'/api/auth/login', '/api/auth/status', '/api/clients/v1/pairings',
+                              '/api/clients/v1/pairings/poll', '/api/clients/v1/auth/refresh'}
+        is_client = path.startswith('/api/clients/v1/')
+        bearer = request.headers.get('authorization', '')
+        principal = None
+        try:
+            if is_client and not public_auth and bearer.startswith('Bearer '):
+                principal = app.state.access.authenticate(bearer[7:])
+                request.state.principal = principal
+            elif path.startswith('/api/') and not public_auth and not path.startswith('/api/integrations/v1/'):
+                if (public_origin or app.state.access.configured()) and not app.state.access.owner_session(request.cookies.get('personalai_login', '')):
+                    return JSONResponse({'detail': '请先登录。'}, status_code=401)
+        except StoreError as exc:
+            return JSONResponse({'detail': exc.message}, status_code=exc.status)
+        if request.method not in {"GET", "HEAD", "OPTIONS"} and not public_auth and not principal:
             if not secrets.compare_digest(request.headers.get("x-csrf-token", ""), csrf) or not secrets.compare_digest(request.cookies.get("personalai_session", ""), session):
                 return JSONResponse({"detail": "会话已失效，请刷新页面后重试"}, status_code=403)
         blocked = app.state.plugins.blocked_path(request.url.path) if hasattr(app.state, 'plugins') else None
         if blocked:
             return JSONResponse({'detail': '该功能插件未启用：' + blocked}, status_code=409)
-        response = await call_next(request)
+        identity = principal or ({'id': 'owner', 'role': 'owner'} if app.state.access.owner_session(request.cookies.get('personalai_login', '')) else None)
+        actor_token = actor_context.set(identity)
+        try:
+            response = await call_next(request)
+        finally:
+            actor_context.reset(actor_token)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -87,7 +122,7 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
     @app.get("/api/session")
     def get_session():
         response = JSONResponse({"csrf_token": csrf})
-        response.set_cookie("personalai_session", session, httponly=True, samesite="strict")
+        response.set_cookie("personalai_session", session, httponly=True, samesite="strict", secure=bool(public_origin))
         return response
 
     @app.get("/api/status")
@@ -100,7 +135,7 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
             except StoreError:
                 # A lost Windows key must not block access to local records or settings.
                 model_ready = False
-            return {"version": "0.3.0", "timezone": "Asia/Shanghai", "today": datetime.now(TZ).date().isoformat(),
+            return {"version": "0.4.0", "timezone": "Asia/Shanghai", "today": datetime.now(TZ).date().isoformat(),
                     "model": {"status": "configured" if model_ready else "not_configured", "message": "目标分析逐次确认；定时分析须单独授权数据范围。输入原文不会自动进行 AI 理解。"},
                     "storage": {"healthy": not store.errors, "errors": store.errors},
                     "user_files": store.user_files_status(),
@@ -201,6 +236,10 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
     from .quick_entry import register_quick_entry
     register_integrations(app, store)
     register_quick_entry(app, store)
+    from .client_api import register_clients
+    register_clients(app, store)
+    from .delivery import register_delivery
+    register_delivery(app, store)
     frontend = frontend_dir or PROJECT_ROOT / "frontend" / "dist"
     if (frontend / "assets").is_dir():
         app.mount("/assets", StaticFiles(directory=frontend / "assets", follow_symlink=False), name="assets")

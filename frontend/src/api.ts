@@ -41,6 +41,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     const response = await fetch(path, { ...init, signal: controller.signal, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf, ...init.headers } });
     if (!response.ok) {
+      if(response.status===401)window.dispatchEvent(new Event('personalai-auth-expired'));
       const body = await response.json().catch(() => null);
       throw new Error(typeof body?.detail === 'string' ? body.detail : '操作未完成，请保留输入并重试。');
     }

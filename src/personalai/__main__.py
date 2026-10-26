@@ -35,7 +35,9 @@ def main():
         print(f"无法启动：本机端口 {args.port} 已被占用或不可用。请关闭已有实例或用 --port 指定其他端口。", file=sys.stderr)
         raise SystemExit(1)
     print(f"PersonalAI 本地应用：http://127.0.0.1:{args.port}（按 Ctrl+C 停止）", flush=True)
-    config = uvicorn.Config(create_app(data_dir=args.data_dir, port=args.port, enabled_plugins=runtime.plugins, config_path=str(args.config.resolve()) if args.config else None), access_log=False, log_level="warning")
+    config = uvicorn.Config(create_app(data_dir=args.data_dir, port=args.port, enabled_plugins=runtime.plugins,
+        public_origin=runtime.public_origin, config_path=str(args.config.resolve()) if args.config else None),
+        access_log=False, log_level="warning", proxy_headers=True, forwarded_allow_ips='127.0.0.1')
     try:
         uvicorn.Server(config).run(sockets=[sock])
     finally:

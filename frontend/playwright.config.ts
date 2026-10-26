@@ -44,7 +44,7 @@ export default defineConfig({
     ...extraProjects,
   ],
   webServer: {
-    command: '".venv/Scripts/python.exe" tests/browser_server.py',
+    command: (process.platform==='win32'?'".venv/Scripts/python.exe"':'".venv/bin/python"')+' tests/browser_server.py',
     cwd: '..',
     url: 'http://127.0.0.1:19765/api/status',
     reuseExistingServer: false,

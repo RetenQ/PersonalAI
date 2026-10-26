@@ -260,3 +260,10 @@ h1 { color: #2a2d25; font-family: Georgia, "Noto Serif SC", "SimSun", serif; fon
 .settings-page [id^="settings-"] { scroll-margin-top:24px; }
 .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 @media(max-width:760px){ .next-grid,.config-grid{grid-template-columns:1fr;} .next-heading{align-items:flex-start;flex-direction:column;} .next-actions,.quick-entry{padding:18px;} .connection-card{padding:12px;} }
+.login-shell { min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f3ee }
+.login-shell>.panel { width:min(100%,440px);padding:36px }
+.login-shell h1 { margin:16px 0 28px }
+.client-panel h3 { margin-top:28px }
+.client-panel form { display:grid;gap:14px;margin-bottom:24px }
+.client-list article,.reminder-row { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #dddcd4;overflow-wrap:anywhere }
+.private-token { display:block;overflow-wrap:anywhere;margin:12px 0;user-select:all }

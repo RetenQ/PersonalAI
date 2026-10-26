@@ -1,0 +1,2229 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PersonalAI Client API",
+    "version": "1.0.0",
+    "description": "See docs/AGENT_API.md for command data-kind mapping, projection shapes, cursor semantics and owner confirmation rules. Web admin routes are deliberately excluded."
+  },
+  "paths": {
+    "/api/clients/v1/pairings": {
+      "post": {
+        "summary": "Pair",
+        "operationId": "pair_api_clients_v1_pairings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        }
+      }
+    },
+    "/api/clients/v1/pairings/poll": {
+      "post": {
+        "summary": "Poll",
+        "operationId": "poll_api_clients_v1_pairings_poll_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairPoll"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        }
+      }
+    },
+    "/api/clients/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh",
+        "operationId": "refresh_api_clients_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Refresh"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        }
+      }
+    },
+    "/api/clients/v1/capabilities": {
+      "get": {
+        "summary": "Capabilities",
+        "operationId": "capabilities_api_clients_v1_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/snapshot": {
+      "get": {
+        "summary": "Snapshot",
+        "operationId": "snapshot_api_clients_v1_snapshot_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/changes": {
+      "get": {
+        "summary": "Changes",
+        "operationId": "changes_api_clients_v1_changes_get",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 300,
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/events": {
+      "get": {
+        "summary": "Events",
+        "operationId": "events_api_clients_v1_events_get",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 300,
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/resources/{resource}": {
+      "get": {
+        "summary": "Resource",
+        "operationId": "resource_api_clients_v1_resources__resource__get",
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Resource"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          },
+          {
+            "name": "goal_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Goal Id"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/commands": {
+      "post": {
+        "summary": "Command",
+        "operationId": "command_api_clients_v1_commands_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/device": {
+      "post": {
+        "summary": "Device",
+        "operationId": "device_api_clients_v1_device_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceOptions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/sync/ack": {
+      "post": {
+        "summary": "Sync Ack",
+        "operationId": "sync_ack_api_clients_v1_sync_ack_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncAck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/openapi.json": {
+      "get": {
+        "summary": "Schema",
+        "operationId": "schema_api_clients_v1_openapi_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/analyses/preview": {
+      "post": {
+        "summary": "Analysis Preview",
+        "operationId": "analysis_preview_api_clients_v1_analyses_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Selection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/analyses": {
+      "post": {
+        "summary": "Analyze",
+        "operationId": "analyze_api_clients_v1_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Analyze"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/schedule": {
+      "get": {
+        "summary": "Schedule Status",
+        "operationId": "schedule_status_api_clients_v1_schedule_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/schedule/preview": {
+      "post": {
+        "summary": "Schedule Preview",
+        "operationId": "schedule_preview_api_clients_v1_schedule_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewSchedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/schedule/confirm": {
+      "post": {
+        "summary": "Schedule Confirm",
+        "operationId": "schedule_confirm_api_clients_v1_schedule_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmSchedule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/schedule/pause": {
+      "post": {
+        "summary": "Schedule Pause",
+        "operationId": "schedule_pause_api_clients_v1_schedule_pause_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/history/{identifier}": {
+      "get": {
+        "summary": "History",
+        "operationId": "history_api_clients_v1_history__identifier__get",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Analyze": {
+        "properties": {
+          "goal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Goal Id"
+          },
+          "task_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Task Ids"
+          },
+          "log_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Log Ids"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "sources": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Sources"
+          },
+          "settings_version": {
+            "type": "integer",
+            "title": "Settings Version"
+          },
+          "approved": {
+            "type": "boolean",
+            "const": true,
+            "title": "Approved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "goal_id",
+          "request_id",
+          "sources",
+          "settings_version",
+          "approved"
+        ],
+        "title": "Analyze"
+      },
+      "Command": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "create_record",
+              "revise_record",
+              "write_entity",
+              "decide",
+              "settings",
+              "model_binding",
+              "reminder",
+              "receipt"
+            ],
+            "title": "Operation"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "default": 0
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "default": "客户端提交"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "operation",
+          "data"
+        ],
+        "title": "Command"
+      },
+      "ConfirmSchedule": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "approval_token": {
+            "type": "string",
+            "title": "Approval Token"
+          },
+          "approved": {
+            "type": "boolean",
+            "const": true,
+            "title": "Approved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "approval_token",
+          "approved"
+        ],
+        "title": "ConfirmSchedule"
+      },
+      "DeviceOptions": {
+        "properties": {
+          "notifications": {
+            "type": "boolean",
+            "title": "Notifications"
+          },
+          "push_registration": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Push Registration"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "notifications"
+        ],
+        "title": "DeviceOptions"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PairPoll": {
+        "properties": {
+          "pairing_id": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Pairing Id"
+          },
+          "poll_secret": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Poll Secret"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "pairing_id",
+          "poll_secret"
+        ],
+        "title": "PairPoll"
+      },
+      "PairStart": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "PairStart"
+      },
+      "PreviewSchedule": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduleOptions"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data",
+          "expected_version"
+        ],
+        "title": "PreviewSchedule"
+      },
+      "Refresh": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Refresh Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "Refresh"
+      },
+      "RunRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "RunRequest"
+      },
+      "ScheduleOptions": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "times": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "title": "Times"
+          },
+          "scopes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "records",
+                "goals",
+                "tasks",
+                "logs",
+                "checkins",
+                "states"
+              ]
+            },
+            "type": "array",
+            "title": "Scopes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScheduleOptions"
+      },
+      "Selection": {
+        "properties": {
+          "goal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Goal Id"
+          },
+          "task_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Task Ids"
+          },
+          "log_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Log Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "goal_id"
+        ],
+        "title": "Selection"
+      },
+      "SyncAck": {
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Cursor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cursor"
+        ],
+        "title": "SyncAck"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "RecordFields": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "category": {
+            "default": "uncategorized",
+            "enum": [
+              "uncategorized",
+              "exercise",
+              "plan",
+              "effort",
+              "progress",
+              "rest",
+              "sleep",
+              "body",
+              "mood",
+              "skill",
+              "diet"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "status": {
+            "default": "open",
+            "enum": [
+              "open",
+              "partial",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "date"
+        ],
+        "title": "RecordFields",
+        "type": "object"
+      },
+      "CreateRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "category": {
+            "default": "uncategorized",
+            "enum": [
+              "uncategorized",
+              "exercise",
+              "plan",
+              "effort",
+              "progress",
+              "rest",
+              "sleep",
+              "body",
+              "mood",
+              "skill",
+              "diet"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "status": {
+            "default": "open",
+            "enum": [
+              "open",
+              "partial",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "note",
+            "enum": [
+              "note",
+              "task",
+              "idea"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "date",
+          "request_id"
+        ],
+        "title": "CreateRecord",
+        "type": "object"
+      },
+      "ProposeRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "category": {
+            "default": "uncategorized",
+            "enum": [
+              "uncategorized",
+              "exercise",
+              "plan",
+              "effort",
+              "progress",
+              "rest",
+              "sleep",
+              "body",
+              "mood",
+              "skill",
+              "diet"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "status": {
+            "default": "open",
+            "enum": [
+              "open",
+              "partial",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "date",
+          "request_id",
+          "expected_version",
+          "reason"
+        ],
+        "title": "ProposeRevision",
+        "type": "object"
+      },
+      "Milestone": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "weight": {
+            "default": 1,
+            "exclusiveMinimum": 0,
+            "title": "Weight",
+            "type": "number"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Progress"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "Milestone",
+        "type": "object"
+      },
+      "Goal": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "criteria": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Criteria",
+            "type": "string"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Due"
+          },
+          "mode": {
+            "default": "metric",
+            "enum": [
+              "metric",
+              "milestones"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "unit": {
+            "default": "",
+            "maxLength": 50,
+            "title": "Unit",
+            "type": "string"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Baseline"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Current"
+          },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/Milestone"
+            },
+            "maxItems": 50,
+            "title": "Milestones",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "criteria"
+        ],
+        "title": "Goal",
+        "type": "object"
+      },
+      "Tracking": {
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal Id"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Tags",
+            "type": "array"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Progress"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "title": "Tracking",
+        "type": "object"
+      },
+      "Activity": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "enum": [
+                  "morning",
+                  "noon",
+                  "evening"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Slot"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal Id"
+          },
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "result": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Result",
+            "type": "string"
+          },
+          "obstacle": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Obstacle",
+            "type": "string"
+          },
+          "completed": {
+            "default": false,
+            "title": "Completed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "text"
+        ],
+        "title": "Activity",
+        "type": "object"
+      },
+      "CheckIn": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "slot": {
+            "enum": [
+              "morning",
+              "noon",
+              "evening"
+            ],
+            "title": "Slot",
+            "type": "string"
+          },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal Id"
+          },
+          "response": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Response",
+            "type": "string"
+          },
+          "obstacle": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Obstacle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "slot",
+          "response"
+        ],
+        "title": "CheckIn",
+        "type": "object"
+      },
+      "CurrentState": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "energy": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Energy",
+            "type": "string"
+          },
+          "mood": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Mood",
+            "type": "string"
+          },
+          "obstacle": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Obstacle",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "CurrentState",
+        "type": "object"
+      },
+      "Profile": {
+        "additionalProperties": false,
+        "description": "Explicit self-description, independent of settings and inferred analyses.",
+        "properties": {
+          "personality": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Personality",
+            "type": "string"
+          },
+          "values": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Values",
+            "type": "string"
+          },
+          "preferences": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Preferences",
+            "type": "string"
+          },
+          "boundaries": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Boundaries",
+            "type": "string"
+          }
+        },
+        "title": "Profile",
+        "type": "object"
+      },
+      "Reminder": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "time": {
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Time",
+            "type": "string"
+          },
+          "repeat": {
+            "default": "once",
+            "enum": [
+              "once",
+              "daily",
+              "weekly"
+            ],
+            "title": "Repeat",
+            "type": "string"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "title": "Weekdays",
+            "type": "array"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "End Date"
+          },
+          "timezone": {
+            "const": "Asia/Shanghai",
+            "default": "Asia/Shanghai",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "checkin_slot": {
+            "anyOf": [
+              {
+                "enum": [
+                  "morning",
+                  "noon",
+                  "evening"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Checkin Slot"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "title",
+          "start_date",
+          "time"
+        ],
+        "title": "Reminder",
+        "type": "object"
+      },
+      "UserSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Name",
+            "type": "string"
+          },
+          "bio": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Bio",
+            "type": "string"
+          },
+          "focus": {
+            "default": "",
+            "maxLength": 3000,
+            "title": "Focus",
+            "type": "string"
+          }
+        },
+        "title": "UserSettings",
+        "type": "object"
+      },
+      "UISettings": {
+        "additionalProperties": false,
+        "properties": {
+          "order": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Order",
+            "type": "array"
+          },
+          "hidden": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hidden",
+            "type": "array"
+          }
+        },
+        "title": "UISettings",
+        "type": "object"
+      },
+      "TaskType": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TaskType",
+        "type": "object"
+      },
+      "TypeSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "task_types": {
+            "items": {
+              "$ref": "#/components/schemas/TaskType"
+            },
+            "maxItems": 100,
+            "title": "Task Types",
+            "type": "array"
+          }
+        },
+        "title": "TypeSettings",
+        "type": "object"
+      },
+      "Bindings": {
+        "additionalProperties": false,
+        "properties": {
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Schedule"
+          }
+        },
+        "title": "Bindings",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ClientBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Independent revocable device or scoped Agent token. Never in URL."
+      }
+    }
+  }
+}

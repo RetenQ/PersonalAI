@@ -1,0 +1,23 @@
+[Unit]
+Description=PersonalAI single-owner service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=personalai
+Group=personalai
+WorkingDirectory=/opt/personalai
+Environment=PERSONALAI_MASTER_KEY_FILE=/etc/personalai/master.key
+ExecStart=/opt/personalai/.venv/bin/python -m personalai --config /etc/personalai/server.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/personalai
+
+[Install]
+WantedBy=multi-user.target

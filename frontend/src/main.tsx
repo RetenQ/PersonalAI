@@ -12,6 +12,7 @@ import { SpaceMark } from './SpaceMark';
 import { Dashboard } from './Dashboard';
 import { SettingsPage } from './SettingsPage';
 import { UserFilesWarning } from './UserFilesPanel';
+import { AuthGate } from './AuthGate';
 
 type Page = string;
 const navigation: { id: Page; label: string; subtitle: string; icon: typeof MessageSquare }[] = [
@@ -240,4 +241,4 @@ function Modal({ title, children, close, busy }: { title: string; children: Reac
   return <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget && !busy) close(); }}><div className="modal" ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onKeyDown={trap}><header><h2>{title}</h2><button aria-label="关闭对话框" disabled={busy} onClick={close}><X size={20}/></button></header>{children}</div></div>;
 }
 
-createRoot(document.getElementById('root')!).render(<PluginProvider><App/></PluginProvider>);
+createRoot(document.getElementById('root')!).render(<AuthGate><PluginProvider><App/></PluginProvider></AuthGate>);

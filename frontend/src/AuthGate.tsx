@@ -1,0 +1,10 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import { connect } from './api';
+
+export function AuthGate({children}:{children:ReactNode}) {
+  const [allowed,setAllowed]=useState(false),[mounted,setMounted]=useState(false),[configured,setConfigured]=useState(true);
+  const [password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[checking,setChecking]=useState(true);
+  async function check(){setChecking(true);try{const r=await fetch('/api/auth/status');if(!r.ok)throw new Error('无法读取登录状态');const s=await r.json();setConfigured(s.configured || !s.required);const ok=!s.required||s.authenticated;setAllowed(ok);if(ok)setMounted(true);}catch(e){setError((e as Error).message);}finally{setChecking(false);}}
+  useEffect(()=>{void check();const expired=()=>{setAllowed(false);setError('登录已过期，请重新登录。未提交的页面内容仍保留。');};window.addEventListener('personalai-auth-expired',expired);return()=>window.removeEventListener('personalai-auth-expired',expired);},[]);
+  return <>{!allowed&&<main className="login-shell"><section className="panel"><p className="eyebrow">PERSONALAI</p><h1>回到你的空间</h1>{checking?<p>正在检查连接…</p>:!configured?<p>此服务器尚未初始化管理员。请按服务器部署说明完成初始化后刷新。</p>:<form onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');try{const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});const result=await r.json();if(!r.ok)throw new Error(result.detail||'登录失败');setPassword('');await connect();await check();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}><label>管理员密码<input type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={e=>setPassword(e.target.value)}/></label><button className="primary" disabled={busy}>登录</button></form>}{error&&<p role="alert">{error}</p>}<button className="text-button" onClick={()=>void check()}>重新检查连接</button></section></main>}{mounted&&<div hidden={!allowed}>{children}</div>}</>;
+}

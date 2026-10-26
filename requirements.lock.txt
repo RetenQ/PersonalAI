@@ -18,7 +18,10 @@ pydantic==2.14.1
 pydantic_core==2.50.1
 Pygments==2.21.0
 pytest==9.1.1
-pywin32==312
+pywin32==312; sys_platform == 'win32'
+cryptography==46.0.7
+cffi==2.1.1
+pycparser==3.12
 starlette==1.9.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
