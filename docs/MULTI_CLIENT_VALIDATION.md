@@ -1,5 +1,7 @@
 # v0.4 多端实现验证记录
 
+服务器接续记录另见 [10 月 26 日 Linux 验收](SERVER_VALIDATION_2026_10_26.md) 和 [10 月 27 日公网部署验收](SERVER_VALIDATION_2026_10_27.md)：实际测试地址已上线并通过服务器自测。2026-10-28 本人确认手机浏览器验证通过，见 [手机验证记录](SERVER_VALIDATION_2026_10_28.md)；真实 APK/实际 Agent 仍待接入，WebKit 环境启动失败单独记录。下文为原 Windows 验证，不与服务器和后续用户实测结果混计。
+
 日期：2026-10-26。环境：Windows、Python 3.12、Node/Vite、JDK 17、Android SDK 35、Gradle 8.11.1。测试使用临时或 `.cache` 独立目录，没有将测试内容写入正式 data/。
 
 ## 已验证
