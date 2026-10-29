@@ -66,6 +66,7 @@ class CheckIn(StrictModel):
 
 
 class CurrentState(StrictModel):
+    """Historical v2 replay only. Active current-state writes are retired."""
     date: date
     energy: str = Field(default='', max_length=200)
     mood: str = Field(default='', max_length=200)

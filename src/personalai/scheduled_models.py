@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 
 from .models import StrictModel
 
+# Frozen event scope, including retired historical input; active requests use ActiveScheduleOptions.
 Scope = Literal['records', 'goals', 'tasks', 'logs', 'checkins', 'states']
 SCOPE_NAMES = {'records': '日常原文', 'goals': '目标及完成标准', 'tasks': '任务及追踪',
                'logs': '活动日志', 'checkins': '早中晚回应', 'states': '当前状态'}

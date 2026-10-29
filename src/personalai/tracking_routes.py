@@ -126,7 +126,7 @@ def register_tracking(app, store, parse_day):
         app.add_api_route(path + '/{identifier}', update, methods=['POST'], name=kind + '_update')
 
     for path, kind in [('/api/goals', 'goal'), ('/api/task-tracking', 'tracking'), ('/api/activity-logs', 'log'),
-                       ('/api/check-ins', 'checkin'), ('/api/current-state', 'state')]:
+                       ('/api/check-ins', 'checkin')]:
         add_collection(path, kind)
 
     @app.get('/api/entities/{identifier}')
@@ -141,7 +141,7 @@ def register_tracking(app, store, parse_day):
             refresh()
             item=service.get(identifier)
             target=item.data.get('target_kind',item.kind)
-            owner={'goal':'tracking','tracking':'tracking','log':'journal','checkin':'journal','state':'journal','suggestion':'analysis'}.get(target)
+            owner={'goal':'tracking','tracking':'tracking','log':'journal','checkin':'journal','suggestion':'analysis'}.get(target)
             if payload.decision=='accept' and owner and not app.state.plugins.active(owner):
                 raise StoreError('所属插件未启用，不能接受此修改。',409)
         return service.decide(identifier, payload)

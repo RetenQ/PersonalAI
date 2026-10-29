@@ -3,7 +3,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, mutate } from './api';
 import { Dialog, DataView } from './trackingUI';
 import { moduleNames } from './trackingTypes';
-import { ProfilePanel } from './ProfilePanel';
 import { UserFilesPanel } from './UserFilesPanel';
 import { SchedulePanel } from './SchedulePanel';
 import { IntegrationPanel } from './IntegrationPanel';
@@ -55,14 +54,24 @@ function ConnectionKeys({ revision, changed }: { revision: number; changed: () =
     {error && <p role="alert" className="alert error">{error}</p>}{message && <p role="status">{message}</p>}
   </section>;
 }
+function LayoutFields({ value, set }: { value: Data; set: (value: Data) => void }) {
+  const adjustable = (value.order as string[]).filter(id => !['profile', 'state', 'year', 'logs', 'checkins', 'pending', 'other'].includes(id));
+  return <>{adjustable.map((id, index) => <div className="module-setting" key={id}>
+    <label className="check-label"><input type="checkbox" checked={!value.hidden.includes(id)} onChange={e => set({...value, hidden: e.target.checked ? value.hidden.filter((x:string) => x !== id) : [...value.hidden, id]})}/>{moduleNames[id] || id}</label>
+    <div>{[-1, 1].map(direction => <button key={direction} type="button" aria-label={(direction < 0 ? '上移' : '下移') + (moduleNames[id] || id)} disabled={index + direction < 0 || index + direction >= adjustable.length} onClick={() => {
+      const order = [...value.order], from = order.indexOf(id), to = order.indexOf(adjustable[index + direction]);
+      [order[from], order[to]] = [order[to], order[from]];
+      set({...value, order});
+    }}>{direction < 0 ? '↑' : '↓'}</button>)}</div>
+  </div>)}</>;
+}
 export function SettingsPage({ ready, backup }: { ready: boolean; backup: () => void }) {
   const [result,setResult]=useState<ConfigResult>(), [error,setError]=useState(''), [revision,setRevision]=useState(0), [filesRevision,setFilesRevision]=useState(0);
   const plugins=usePlugins();
   useEffect(()=>{if(ready)api<ConfigResult>('/api/config/sections').then(setResult).catch(e=>setError(e.message));},[ready]);
   if(!result)return <p role={error?'alert':undefined}>{error || '正在读取设置…'}</p>;
-  return <div className="settings-page"><nav className="settings-jump" aria-label="设置分区">{[['personal','用户资料'],['preferences','界面与功能'],['models','模型连接'],['extensions','插件与接口']].map(([id,label])=><a key={id} href={'#settings-'+id}>{label}</a>)}</nav>
-    <div id="settings-personal"><Section name="user" title="展示资料" initial={result.sections.user} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><>{[['name','展示名称'],['bio','个人简介'],['focus','近期关注']].map(([id,label])=><label key={id}>{label}{id==='name'?<input maxLength={100} value={v[id]} onChange={e=>set({...v,[id]:e.target.value})}/>:<textarea maxLength={3000} value={v[id]} onChange={e=>set({...v,[id]:e.target.value})}/>}</label>)}</>}</Section><ProfilePanel changed={()=>setFilesRevision(v=>v+1)}/></div>
-    <div id="settings-preferences"><Section name="ui" title="首页布局" initial={result.sections.ui} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><>{v.order.map((id:string,index:number)=><div className="module-setting" key={id}><label className="check-label"><input type="checkbox" checked={!v.hidden.includes(id)} onChange={e=>set({...v,hidden:e.target.checked?v.hidden.filter((x:string)=>x!==id):[...v.hidden,id]})}/>{moduleNames[id] || id}</label><div>{[-1,1].map(direction=><button key={direction} type="button" aria-label={(direction<0?'上移':'下移')+(moduleNames[id]||id)} disabled={index+direction<0 || index+direction>=v.order.length} onClick={()=>{const order=[...v.order];[order[index],order[index+direction]]=[order[index+direction],order[index]];set({...v,order});}}>{direction<0?'↑':'↓'}</button>)}</div></div>)}</>}</Section>
+  return <div className="settings-page"><nav className="settings-jump" aria-label="设置分区">{[['preferences','界面与功能'],['models','模型连接'],['extensions','插件与接口']].map(([id,label])=><a key={id} href={'#settings-'+id}>{label}</a>)}</nav>
+    <div id="settings-preferences"><Section name="ui" title="首页布局" initial={result.sections.ui} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><><LayoutFields value={v} set={set}/></>}</Section>
     <Section name="types" title="任务类型" initial={result.sections.types} saved={()=>setFilesRevision(v=>v+1)}>{(v,set)=><>{v.task_types.map((t:Data,i:number)=><div className="type-setting" key={t.id}><label>类型 {i+1}<input required maxLength={80} value={t.name} onChange={e=>set({...v,task_types:v.task_types.map((x:Data)=>x.id===t.id?{...x,name:e.target.value}:x)})}/></label><label className="check-label"><input type="checkbox" checked={t.active} onChange={e=>set({...v,task_types:v.task_types.map((x:Data)=>x.id===t.id?{...x,active:e.target.checked}:x)})}/>启用</label></div>)}<button type="button" className="secondary" onClick={()=>set({...v,task_types:[...v.task_types,{id:crypto.randomUUID(),name:'',active:true}]})}>添加任务类型</button></>}</Section></div>
     <div id="settings-models"><ModelConnections initial={result.sections.models} changed={()=>{setRevision(v=>v+1);setFilesRevision(v=>v+1);}}/><ConnectionKeys revision={revision} changed={()=>setRevision(v=>v+1)}/>{plugins.active('analysis') && <SchedulePanel modelRevision={revision}/>}</div>
     <div id="settings-extensions"><PluginPanel/><IntegrationPanel/><ClientPanel/></div>

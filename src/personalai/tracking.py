@@ -31,6 +31,13 @@ class TrackingService:
         return ConfigService(self.store).combined()
 
     def validate(self, kind, data, before=None):
+        if kind == 'state':
+            raise StoreError('当前状态功能已移除，历史记录仅供归档。', 410)
+        # Legacy settings events require the frozen module set, even after retirement.
+        if kind == 'settings':
+            from .tracking_models import MODULES
+            if set(data.get('order', [])) == set(MODULES) - {'state'}:
+                data = {**data, 'order': [*data['order'], 'state']}
         try:
             data = KINDS[kind].model_validate(data).model_dump(mode='json')
         except (ValidationError, KeyError) as exc:
@@ -149,9 +156,8 @@ class TrackingService:
                 'goals': [{**e.model_dump(mode='json'), 'progress': goal_progress(e.data)} for e in goals], 'tasks': tasks,
                 'logs': [e.model_dump(mode='json') for e in values if e.kind == 'log' and selected(e)],
                 'checkins': [e.model_dump(mode='json') for e in values if e.kind == 'checkin' and selected(e)],
-                'states': [e.model_dump(mode='json') for e in values if e.kind == 'state' and e.data['date'] == day.isoformat()],
-                'analyses': analyses, 'pending': [e.model_dump(mode='json') for e in values if e.kind in {'change', 'suggestion'} and e.data['status'] == 'pending'],
-                'decisions': [e.model_dump(mode='json') for e in values if e.kind in {'change', 'suggestion'} and e.data['status'] != 'pending']}
+                'analyses': analyses, 'pending': [e.model_dump(mode='json') for e in values if e.kind in {'change', 'suggestion'} and e.data.get('target_kind') != 'state' and e.data['status'] == 'pending'],
+                'decisions': [e.model_dump(mode='json') for e in values if e.kind in {'change', 'suggestion'} and e.data.get('target_kind') != 'state' and e.data['status'] != 'pending']}
 
     def analysis_input(self, goal_id, task_ids, log_ids):
         goal = self.get(goal_id, 'goal')

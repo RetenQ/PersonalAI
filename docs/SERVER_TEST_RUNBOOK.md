@@ -122,7 +122,7 @@ sudo certbot renew --cert-name personalai.retenq.cloud --dry-run \
 
 ## APK 配对与 Agent 接入
 
-向本机开发方交付 **HTTPS 根地址 `https://personalai.retenq.cloud`**，协议为 `v1`，前缀 `/api/clients/v1/`。APK 在本机 `apkProject/` 开发/构建，不把服务器管理员密码放入 APK。
+向本机开发方交付 **HTTPS 根地址 `https://personalai.retenq.cloud`**，协议为 `v1`，前缀 `/api/clients/v1/`。APK 在本机 `E:\CodexProject\PersonalAI_Apk` 开发/构建，不把服务器管理员密码放入 APK。
 
 1. APK 填 HTTPS 根地址并申请配对，显示八位配对码。
 2. 本人登录网页 → 设置 → 设备、Agent 与提醒 → 填入码并批准。

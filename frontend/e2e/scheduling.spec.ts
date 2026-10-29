@@ -32,6 +32,8 @@ test('定时设置预览、取消、保存关闭状态与报告入口', async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.screenshot({ path: info.outputPath('schedule-settings.png') });
   await nav.getByRole('button', { name: '每日回顾', exact: true }).click();
+  await expect(page.getByRole('region', { name: '前一天回顾' })).toBeVisible();
+  await page.getByText('分析历史', { exact: true }).click();
   const reports = page.getByRole('region', { name: 'AI 定时分析', exact: true });
   await expect(reports).toContainText('尚无定时分析');
   await expect(page.getByRole('alert')).toHaveCount(0);

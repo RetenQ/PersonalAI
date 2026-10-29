@@ -17,7 +17,7 @@ from .store import StoreError
 from .user_files import atomic_write, check_path
 
 actor_context = ContextVar('personalai_actor', default=None)
-RESOURCES = {'goals', 'tasks', 'records', 'logs', 'checkins', 'states', 'reports', 'pending', 'reminders', 'settings', 'profile'}
+RESOURCES = {'goals', 'tasks', 'records', 'logs', 'checkins', 'reports', 'pending', 'reminders', 'settings', 'profile'}
 AGENT_SCOPES = {f'read:{x}' for x in RESOURCES - {'settings'}} | {'write:records', 'propose'}
 DEVICE_SCOPES = {f'read:{x}' for x in RESOURCES} | {'write:records', 'propose', 'confirm', 'settings', 'reminders', 'analysis'}
 

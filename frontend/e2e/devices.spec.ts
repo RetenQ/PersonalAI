@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('触控导航、短屏表单滚动与旋转后保留输入', async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await page.getByRole('navigation',{name:'主要导航'}).getByRole('button',{name:'总览',exact:true}).click();
   await expect(page.getByRole('heading', { name: '目标与任务', exact: true })).toBeVisible();
   expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
   // Windows WebKit reports maxTouchPoints=0 even when touch emulation works.
@@ -15,12 +15,12 @@ test('触控导航、短屏表单滚动与旋转后保留输入', async ({ page 
   });
 
   // Use touch events, including controls below the fold, instead of mouse clicks.
-  for (const name of ['记录', '任务与想法', '历史', '每日回顾', '设置', '总览']) {
+  for (const name of ['日志与任务', '每日回顾', '设置', '总览']) {
     await page.getByRole('navigation', { name: '主要导航' }).getByRole('button', { name, exact: true }).tap();
     await expect(page.locator('.loading')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   }
-  expect(await page.evaluate(() => Number(document.documentElement.dataset.touchCount))).toBeGreaterThanOrEqual(6);
+  expect(await page.evaluate(() => Number(document.documentElement.dataset.touchCount))).toBeGreaterThanOrEqual(4);
 
   await page.getByRole('button', { name: '建立目标', exact: true }).tap();
   const dialog = page.getByRole('dialog');

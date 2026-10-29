@@ -16,7 +16,7 @@ class UserSettings(StrictModel):
     focus: str = Field(default='', max_length=3000)
 
 class UISettings(StrictModel):
-    order: list[str] = Field(default_factory=lambda: MODULES.copy())
+    order: list[str] = Field(default_factory=lambda: [x for x in MODULES if x != 'state'])
     hidden: list[str] = Field(default_factory=list)
     @model_validator(mode='after')
     def valid(self):
@@ -63,13 +63,20 @@ class ConfigService:
             raise StoreError('未知设置分区', 404)
         item = self.store.entities.get('config:' + section)
         if item:
-            return {'data': deepcopy(item.data), 'version': item.version, 'origin': 'section'}
+            data = deepcopy(item.data)
+            if section == 'ui':
+                data = {**data, 'order': [x for x in data['order'] if x != 'state'],
+                        'hidden': [x for x in data['hidden'] if x != 'state']}
+            return {'data': data, 'version': item.version, 'origin': 'section'}
         old = self.legacy()
         if section == 'models':
             data = {'connections': [{'id': 'legacy', 'name': '原有模型连接', **old['model']}],
                     'bindings': {'goal': 'legacy', 'schedule': 'legacy'}}
         else:
             data = {k: old[k] for k in SCHEMAS[section].model_fields}
+        if section == 'ui':
+            data = {**data, 'order': [x for x in data['order'] if x != 'state'],
+                    'hidden': [x for x in data['hidden'] if x != 'state']}
         return {'data': data, 'version': 0, 'origin': 'legacy'}
     def combined(self):
         result = self.legacy()

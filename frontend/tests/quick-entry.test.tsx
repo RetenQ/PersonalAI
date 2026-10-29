@@ -17,5 +17,5 @@ it('changing next task keeps unfinished text',async()=>{
  const user=userEvent.setup();const tasks:any[]=[{task_id:'one',record:{text:'First'}},{task_id:'two',record:{text:'Second'}}];
  const view=render(<QuickEntry today="2026-10-25" tasks={tasks} saved={async()=>{}} selectedTask="one"/>);
  await user.type(screen.getByLabelText('快捷记录内容'),'草稿');view.rerender(<QuickEntry today="2026-10-25" tasks={tasks} saved={async()=>{}} selectedTask="two"/>);
- expect((screen.getByLabelText('快捷记录内容') as HTMLInputElement).value).toBe('草稿');expect((screen.getByLabelText('关联任务') as HTMLSelectElement).value).toBe('two');
+ expect((screen.getByLabelText('快捷记录内容') as HTMLInputElement).value).toBe('草稿');expect(screen.queryByLabelText('关联任务')).toBeNull();
 });

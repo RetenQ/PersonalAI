@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('分区独立保存、快捷录入、插件与只读令牌', async ({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');const nav=page.getByRole('navigation',{name:'主要导航'});
+ await page.goto('/'); await page.getByRole('navigation',{name:'主要导航'}).getByRole('button',{name:'总览',exact:true}).click();const nav=page.getByRole('navigation',{name:'主要导航'});
  const unique='模块验收 '+info.project.name+' '+Date.now();
  await page.getByLabel('快捷记录内容').fill(unique);
  await page.getByRole('button',{name:'保存这条记录',exact:true}).click();
@@ -10,16 +10,12 @@ test('分区独立保存、快捷录入、插件与只读令牌', async ({page},
  const notes=(await(await page.request.get('/api/records?kind=note&q='+encodeURIComponent(unique))).json()).records;
  expect(notes).toHaveLength(1);
  await nav.getByRole('button',{name:'设置',exact:true}).click();
- await page.getByLabel('展示名称').fill('未保存的展示资料');
- const checkbox=page.getByRole('checkbox',{name:'年度时间',exact:true});await checkbox.setChecked(!(await checkbox.isChecked()));
+ await expect(page.getByLabel('展示名称')).toHaveCount(0);
+ const checkbox=page.getByRole('checkbox',{name:'目标与任务',exact:true});await checkbox.setChecked(!(await checkbox.isChecked()));
  await page.getByRole('button',{name:'保存首页布局',exact:true}).click();
  await expect(page.locator('.settings-section').filter({has:page.getByRole('heading',{name:'首页布局',exact:true})}).getByRole('status')).toContainText('已保存');
- await expect(page.getByLabel('展示名称')).toHaveValue('未保存的展示资料');
- await expect(page.getByRole('dialog')).toHaveCount(0);
- await page.getByRole('button',{name:'保存展示资料',exact:true}).click();
- await expect(page.getByRole('dialog')).toContainText('修改前');
- await page.getByRole('dialog').getByRole('button',{name:'拒绝修改'}).click();
- await expect(page.getByRole('dialog')).toHaveCount(0);
+ await checkbox.setChecked(true);
+ await page.getByRole('button',{name:'保存首页布局',exact:true}).click();
  await page.getByRole('button',{name:'添加模型连接'}).click();
  const card=page.locator('.connection-card').last();await card.getByLabel('连接名称').fill(unique);
  await card.getByLabel('服务地址',{exact:false}).fill('https://example.test/v1');await card.getByLabel('模型名称',{exact:true}).fill('offline-example');
@@ -39,7 +35,7 @@ test('分区独立保存、快捷录入、插件与只读令牌', async ({page},
  await page.screenshot({path:info.outputPath('settings-modular.png'),fullPage:true,scale:'css'});
  await nav.getByRole('button',{name:'扩展示例',exact:true}).click();await page.getByLabel('示例内容').fill(unique);
  await page.getByRole('button',{name:'保存示例记录'}).click();await expect(page.getByText(unique,{exact:true})).toBeVisible();
- await nav.getByRole('button',{name:'总览',exact:true}).click();await expect(page.getByRole('heading',{name:'下一步，由你选择'})).toBeVisible();
+ await nav.getByRole('button',{name:'总览',exact:true}).click();await expect(page.getByRole('heading',{name:'今日任务'})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('overview-modular.png'),fullPage:true,scale:'css'});expect(errors).toEqual([]);
 });

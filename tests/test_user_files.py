@@ -119,7 +119,11 @@ def test_record_rename_keeps_file_path_and_all_source_links(store):
 def test_logs_checkins_and_state_have_distinct_readable_sections(store):
     log = write(store, 'log', {'date': '2026-10-24', 'text': '完成一项整理', 'completed': True})['entity']
     checkin = write(store, 'checkin', {'date': '2026-10-24', 'slot': 'morning', 'response': '继续检查'})['entity']
-    state = write(store, 'state', {'date': '2026-10-24', 'energy': '尚可'})['entity']
+    # Replay a pre-retirement event; active writes are no longer permitted.
+    from personalai.tracking import entity
+    historical = entity('state', {'date': '2026-10-24', 'energy': '尚可'})
+    store.transaction(uuid4(), 'legacy-fixture', {}, lambda: ([], [], {}, [historical]), extension=True)
+    state = historical.model_dump(mode='json')
     assert '已完成事项：是' in read(store, f'logs/{log["id"]}.md')
     assert '早上回顾' in read(store, f'checkins/{checkin["id"]}.md')
     assert 'L2' in read(store, f'states/{state["id"]}.md')

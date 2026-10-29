@@ -38,6 +38,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -84,6 +87,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -132,6 +138,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -156,7 +165,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ClientCapabilities"
+                }
               }
             }
           },
@@ -165,6 +176,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -207,6 +221,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -265,6 +282,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -318,6 +338,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -443,6 +466,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -494,6 +520,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -547,6 +576,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -599,6 +631,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -637,6 +672,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -693,6 +731,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -745,6 +786,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -783,6 +827,9 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -839,6 +886,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -891,6 +941,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -942,6 +995,209 @@
           },
           "403": {
             "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/task-events": {
+      "get": {
+        "summary": "Task Events",
+        "operationId": "task_events_api_clients_v1_task_events_get",
+        "parameters": [
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "409": {
+            "description": "Version conflict; reload and preview again"
+          },
+          "410": {
+            "description": "Cursor invalid; get a new snapshot"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Storage or service unavailable"
+          }
+        },
+        "security": [
+          {
+            "ClientBearer": []
+          }
+        ]
+      }
+    },
+    "/api/clients/v1/history": {
+      "get": {
+        "summary": "History Search",
+        "operationId": "history_search_api_clients_v1_history_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 500,
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 50,
+              "default": "",
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Missing, expired or revoked credential"
+          },
+          "403": {
+            "description": "Scope or source denied"
+          },
+          "404": {
+            "description": "Resource not found"
           },
           "409": {
             "description": "Version conflict; reload and preview again"
@@ -996,6 +1252,9 @@
           "403": {
             "description": "Scope or source denied"
           },
+          "404": {
+            "description": "Resource not found"
+          },
           "409": {
             "description": "Version conflict; reload and preview again"
           },
@@ -1019,6 +1278,40 @@
   },
   "components": {
     "schemas": {
+      "ActiveScheduleOptions": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "times": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 24,
+            "title": "Times"
+          },
+          "scopes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "records",
+                "goals",
+                "tasks",
+                "logs",
+                "checkins"
+              ]
+            },
+            "type": "array",
+            "title": "Scopes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ActiveScheduleOptions"
+      },
       "Analyze": {
         "properties": {
           "goal_id": {
@@ -1077,6 +1370,67 @@
         ],
         "title": "Analyze"
       },
+      "ClientCapabilities": {
+        "properties": {
+          "api_version": {
+            "type": "integer",
+            "title": "Api Version"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes"
+          },
+          "offline": {
+            "type": "string",
+            "title": "Offline"
+          },
+          "reminder_days": {
+            "type": "integer",
+            "title": "Reminder Days"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "notifications": {
+            "type": "boolean",
+            "title": "Notifications"
+          },
+          "features": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Features",
+            "description": "Missing or false means unsupported. Stable names: atomic_task_create_v1, task_events_v1, history_search_v1, report_coverage_v1, goal_created_at_v1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "api_version",
+          "client_id",
+          "role",
+          "scopes",
+          "offline",
+          "reminder_days",
+          "timezone",
+          "notifications",
+          "features"
+        ],
+        "title": "ClientCapabilities"
+      },
       "Command": {
         "properties": {
           "request_id": {
@@ -1087,6 +1441,7 @@
           "operation": {
             "type": "string",
             "enum": [
+              "create_task",
               "create_record",
               "revise_record",
               "write_entity",
@@ -1216,6 +1571,139 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HistoryItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "matches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Matches"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "record": {
+            "type": "boolean",
+            "title": "Record"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HistorySource"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "updated_at",
+          "version",
+          "matches",
+          "history",
+          "record",
+          "source"
+        ],
+        "title": "HistoryItem"
+      },
+      "HistoryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "snapshot_version": {
+            "type": "integer",
+            "title": "Snapshot Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "next_offset",
+          "snapshot_version"
+        ],
+        "title": "HistoryPage"
+      },
+      "HistorySource": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "HistorySource"
+      },
       "PairPoll": {
         "properties": {
           "pairing_id": {
@@ -1257,7 +1745,7 @@
       "PreviewSchedule": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ScheduleOptions"
+            "$ref": "#/components/schemas/ActiveScheduleOptions"
           },
           "expected_version": {
             "type": "integer",
@@ -1303,41 +1791,6 @@
           "request_id"
         ],
         "title": "RunRequest"
-      },
-      "ScheduleOptions": {
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "title": "Enabled",
-            "default": false
-          },
-          "times": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "maxItems": 24,
-            "title": "Times"
-          },
-          "scopes": {
-            "items": {
-              "type": "string",
-              "enum": [
-                "records",
-                "goals",
-                "tasks",
-                "logs",
-                "checkins",
-                "states"
-              ]
-            },
-            "type": "array",
-            "title": "Scopes"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "ScheduleOptions"
       },
       "Selection": {
         "properties": {
@@ -1387,6 +1840,106 @@
           "cursor"
         ],
         "title": "SyncAck"
+      },
+      "TaskEventItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "time": {
+            "type": "string",
+            "title": "Time"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HistorySource"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "task_id",
+          "version",
+          "time",
+          "title",
+          "action",
+          "source"
+        ],
+        "title": "TaskEventItem"
+      },
+      "TaskEventPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskEventItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "snapshot_version": {
+            "type": "integer",
+            "title": "Snapshot Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "next_offset",
+          "snapshot_version"
+        ],
+        "title": "TaskEventPage"
       },
       "ValidationError": {
         "properties": {
@@ -1542,6 +2095,81 @@
           "request_id"
         ],
         "title": "CreateRecord",
+        "type": "object"
+      },
+      "CreateTask": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "category": {
+            "default": "uncategorized",
+            "enum": [
+              "uncategorized",
+              "exercise",
+              "plan",
+              "effort",
+              "progress",
+              "rest",
+              "sleep",
+              "body",
+              "mood",
+              "skill",
+              "diet"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "status": {
+            "default": "open",
+            "enum": [
+              "open",
+              "partial",
+              "done"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "task",
+            "default": "task",
+            "title": "Kind",
+            "type": "string"
+          },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Goal Id"
+          }
+        },
+        "required": [
+          "text",
+          "date",
+          "request_id"
+        ],
+        "title": "CreateTask",
         "type": "object"
       },
       "ProposeRevision": {
@@ -1927,45 +2555,6 @@
         "title": "CheckIn",
         "type": "object"
       },
-      "CurrentState": {
-        "additionalProperties": false,
-        "properties": {
-          "date": {
-            "format": "date",
-            "title": "Date",
-            "type": "string"
-          },
-          "energy": {
-            "default": "",
-            "maxLength": 200,
-            "title": "Energy",
-            "type": "string"
-          },
-          "mood": {
-            "default": "",
-            "maxLength": 200,
-            "title": "Mood",
-            "type": "string"
-          },
-          "obstacle": {
-            "default": "",
-            "maxLength": 3000,
-            "title": "Obstacle",
-            "type": "string"
-          },
-          "note": {
-            "default": "",
-            "maxLength": 3000,
-            "title": "Note",
-            "type": "string"
-          }
-        },
-        "required": [
-          "date"
-        ],
-        "title": "CurrentState",
-        "type": "object"
-      },
       "Profile": {
         "additionalProperties": false,
         "description": "Explicit self-description, independent of settings and inferred analyses.",
@@ -2225,5 +2814,26 @@
         "description": "Independent revocable device or scoped Agent token. Never in URL."
       }
     }
+  },
+  "x-client-features": {
+    "atomic_task_create_v1": "本人设备原子创建任务及初始目标归属",
+    "task_events_v1": "按保存日期查询授权范围内任务及目标动态",
+    "history_search_v1": "按权限查询业务内容及旧修订",
+    "report_coverage_v1": "报告覆盖日期、开始时间及模型名称",
+    "goal_created_at_v1": "目标首次创建时间"
+  },
+  "x-command-data-schemas": {
+    "create_task": "CreateTask (request_id belongs to the command envelope)"
+  },
+  "x-resource-added-fields": {
+    "goals": [
+      "created_at"
+    ],
+    "reports": [
+      "window_start",
+      "window_end",
+      "started_at",
+      "model"
+    ]
   }
 }

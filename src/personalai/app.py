@@ -226,6 +226,10 @@ def create_app(data_dir: Path | None = None, frontend_dir: Path | None = None, p
         return verify_backup(b"".join(chunks))
 
     register_tracking(app, store, parse_day)
+    from .history_routes import register_history
+    register_history(app, store, parse_day)
+    from .task_routes import register_tasks
+    register_tasks(app, store)
     register_configuration(app, store)
     from .scheduling import register_scheduling
     register_scheduling(app, store)

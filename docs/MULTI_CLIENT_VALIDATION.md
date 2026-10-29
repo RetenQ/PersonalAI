@@ -1,5 +1,9 @@
 # v0.4 多端实现验证记录
 
+**2026-10-29 目录拆分**：APK 开发及专属实测记录已迁往 `E:\CodexProject\PersonalAI_Apk`，见 [独立开发入口](APK_DEVELOPMENT.md)。本文保留跨端架构/联合验证，服务器继续维护客户端接口。
+
+**2026-10-28 后续更新**：用户确认 APK 安装配对、双向同步、修改接受/拒绝、离线缓存及草稿联网提交均成功。见 [APK 用户实测记录](APK_DEVELOPMENT.md)。冲突、撤销、系统重启、提醒与实际 Agent/推送仍待验证；下文保留此前阶段记录，以本更新为准。
+
 服务器接续记录另见 [10 月 26 日 Linux 验收](SERVER_VALIDATION_2026_10_26.md) 和 [10 月 27 日公网部署验收](SERVER_VALIDATION_2026_10_27.md)：实际测试地址已上线并通过服务器自测。2026-10-28 本人确认手机浏览器验证通过，见 [手机验证记录](SERVER_VALIDATION_2026_10_28.md)；真实 APK/实际 Agent 仍待接入，WebKit 环境启动失败单独记录。下文为原 Windows 验证，不与服务器和后续用户实测结果混计。
 
 日期：2026-10-26。环境：Windows、Python 3.12、Node/Vite、JDK 17、Android SDK 35、Gradle 8.11.1。测试使用临时或 `.cache` 独立目录，没有将测试内容写入正式 data/。
@@ -46,6 +50,6 @@
 
 后端 `python -m pytest -q`；前端 `npm test`、`npm run build`。浏览器 `npx playwright test --project desktop --project tablet --project phone --project small-phone --project webkit-desktop --project android-pixel --project iphone-portrait --project ipad-portrait`；新增多端联调 `npx playwright test --config playwright.clients.config.ts`。
 
-APK：`gradlew.bat assembleDebug testDebugUnitTest lintDebug`。产物 `apkProject/app/build/outputs/apk/debug/app-debug.apk`，测试签名；正式使用需自有 Release 签名。构建输出、截图、诊断和工具链在忽略目录，不进入公共 Git。
+APK：`gradlew.bat assembleDebug testDebugUnitTest lintDebug`。产物 `E:\CodexProject\PersonalAI_Apk\app\build\outputs\apk\debug\app-debug.apk`，测试签名；正式使用需自有 Release 签名。构建输出、截图、诊断和工具链在忽略目录，不进入公共 Git。
 
 契约：`python scripts/export_client_contract.py`，仅访问临时空目录。部署接续顺序见 `MULTI_CLIENT_PLAN.md`、根 `AI_READ.MD`；当前代码是否已推送以 Git 实际状态为准。

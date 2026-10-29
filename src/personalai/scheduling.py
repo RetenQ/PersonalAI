@@ -18,8 +18,13 @@ from .tracking import TrackingService, entity
 from .user_files import atomic_write, check_path
 
 
+class ActiveScheduleOptions(ScheduleOptions):
+    # The stored Schedule schema still decodes historical consent without rewriting it.
+    scopes: list[Literal['records', 'goals', 'tasks', 'logs', 'checkins']] = Field(default_factory=list)
+
+
 class PreviewSchedule(StrictModel):
-    data: ScheduleOptions
+    data: ActiveScheduleOptions
     expected_version: int = Field(ge=0)
 
 
@@ -51,7 +56,10 @@ class Scheduler:
 
     def config(self):
         item = self.store.entities.get('schedule')
-        return (item.data if item else Schedule().model_dump(mode='json'), item.version if item else 0)
+        data = dict(item.data) if item else Schedule().model_dump(mode='json')
+        if 'states' in data['scopes']:
+            data = {**data, 'enabled': False, 'scopes': [x for x in data['scopes'] if x != 'states']}
+        return data, item.version if item else 0
 
     def model(self):
         return ConfigService(self.store).model('schedule')
@@ -60,7 +68,7 @@ class Scheduler:
         return check_path(self.store.root, '.scheduler/consent.json')
 
     def authorized(self, config, version):
-        if not config['enabled'] or config['model_fingerprint'] != digest(canonical(self.model())):
+        if 'states' in config['scopes'] or not config['enabled'] or config['model_fingerprint'] != digest(canonical(self.model())):
             return False
         try:
             return json.loads(self.arm_path().read_text('utf-8')) == {'version': version, 'fingerprint': digest(canonical(config))}
@@ -79,8 +87,8 @@ class Scheduler:
         for e in self.store.entities.values():
             if e.kind == 'goal' and 'goals' in scopes or e.kind == 'tracking' and e.data['task_id'] in task_ids:
                 items.append(e.model_dump(mode='json'))
-            elif e.kind in {'log', 'checkin', 'state'}:
-                scope = {'log': 'logs', 'checkin': 'checkins', 'state': 'states'}[e.kind]
+            elif e.kind in {'log', 'checkin'}:
+                scope = {'log': 'logs', 'checkin': 'checkins'}[e.kind]
                 if scope in scopes and start.isoformat() <= e.data['date'] <= end.isoformat():
                     items.append(e.model_dump(mode='json'))
         inputs = {'timezone': 'Asia/Shanghai', 'window_start': start.isoformat(), 'window_end': end.isoformat(),
@@ -103,14 +111,20 @@ class Scheduler:
             upcoming = [datetime.combine(at.date() + timedelta(days=d), datetime.strptime(t, '%H:%M').time(), TZ)
                         for d in [0, 1] for t in config['times']]
             next_at = min((x for x in upcoming if x > at), default=None)
+            old = self.store.entities.get('schedule')
+            retired_scope = old is not None and 'states' in old.data['scopes']
             return {'config': config, 'version': version, 'authorized': consent, 'model_ready': ready,
                     'active': consent and ready, 'leader': self.leader, 'error': self.last_error,
                     'next_at': next_at.isoformat() if next_at and consent and ready else None,
-                    'notice': '服务运行时按时开始生成；关闭后只补最近一次。提醒发送由外部应用承担。'}
+                    'notice': ('当前状态已移除，原分析安排已暂停；请重新预览并确认资料范围。'
+                               if retired_scope
+                               else '服务运行时按时开始生成；关闭后只补最近一次。提醒发送由外部应用承担。')}
 
     def preview(self, payload):
         with self.guard, self.store.mutex:
             self.refresh()
+            if 'states' in payload.data.scopes:
+                raise StoreError('当前状态已移除，请重新选择分析范围。', 422)
             before, version = self.config()
             if payload.expected_version != version:
                 raise StoreError('定时设置已变化，请刷新后预览。')

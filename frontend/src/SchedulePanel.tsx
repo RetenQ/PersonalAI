@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, mutate } from './api';
 import { Dialog } from './trackingUI';
 
-const scopes = { records: '日常原文', goals: '目标及完成标准', tasks: '任务及追踪', logs: '活动日志', checkins: '早中晚回应', states: '当前状态' };
+const scopes = { records: '日常原文', goals: '目标及完成标准', tasks: '任务及追踪', logs: '活动日志', checkins: '早中晚回应' };
 type Scope = keyof typeof scopes;
 interface Options { enabled: boolean; times: string[]; scopes: Scope[] }
 interface Status { config: Options; version: number; authorized: boolean; model_ready: boolean; active: boolean; leader: boolean; next_at: string | null; error: string; notice: string }

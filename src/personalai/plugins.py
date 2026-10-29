@@ -182,10 +182,10 @@ def example_setup(ctx):
 
 def builtin_plugins():
     return [
-        Plugin('tracking','目标与任务',routes=('/api/goals','/api/task-tracking'),pages=('plans',),modules=('goals','pending'),capabilities=('tracking',)),
-        Plugin('journal','日常与回顾',routes=('/api/activity-logs','/api/check-ins','/api/current-state'),pages=('capture','reports'),modules=('profile','state','year','logs','other','checkins'),capabilities=('tracking',)),
+        Plugin('tracking','目标与任务',routes=('/api/goals','/api/task-tracking','/api/tasks'),pages=('plans',),modules=('goals','pending'),capabilities=('tracking',)),
+        Plugin('journal','日常与回顾',routes=('/api/activity-logs','/api/check-ins'),pages=('capture','reports'),modules=('profile','year','logs','other','checkins'),capabilities=('tracking',)),
         Plugin('analysis','AI 分析',dependencies=('tracking','journal'),routes=('/api/analyses','/api/schedule','/api/scheduled-reports'),capabilities=('models','scheduler'),start=lambda c:c.service('scheduler').start(),stop=lambda c:c.service('scheduler').stop()),
-        Plugin('dashboard','总览',dependencies=('tracking','journal'),routes=('/api/dashboard',),pages=('dashboard',)),
+        Plugin('dashboard','总览',dependencies=('tracking','journal'),routes=('/api/dashboard',),pages=('dashboard','journal')),
         Plugin('exchange','导出与读取',dependencies=('tracking','journal'),routes=('/api/exports','/api/integrations/v1')),
         Plugin('example','扩展示例',capabilities=('data',),pages=('example',),modules=('example',),types={'entry':ExampleEntry},settings=ExampleSettings,
                render=lambda kind,data: '## 扩展示例\n\n'+(data.get('text') or data.get('heading','')),setup=example_setup),

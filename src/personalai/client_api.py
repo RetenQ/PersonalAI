@@ -2,7 +2,7 @@
 import asyncio
 import hashlib
 import json
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID, uuid4, uuid5, NAMESPACE_URL
 
@@ -12,6 +12,9 @@ from pydantic import Field, ValidationError
 
 from .access import AGENT_SCOPES, RESOURCES, actor_context
 from .configuration import ConfigService
+from .task_routes import CreateTask, create_task_with_tracking
+from .history_routes import search_history, task_event_items
+from .client_views import permitted, project, RESOURCES as HISTORY_RESOURCES, PLUGINS
 from .extensions import extension
 from .integrations import integration_items
 from .models import StrictModel, CreateRecord, RecordFields, ProposeRevision, Decision, TZ
@@ -23,7 +26,66 @@ from .tracking_routes import Selection, Analyze
 from .scheduling import PreviewSchedule, ConfirmSchedule, RunRequest
 
 PREFIX = '/api/clients/v1'
-KINDS = {'goal': 'goals', 'tracking': 'tasks', 'log': 'logs', 'checkin': 'checkins', 'state': 'states', 'profile': 'profile', 'core/reminder': 'reminders'}
+KINDS = {'goal': 'goals', 'tracking': 'tasks', 'log': 'logs', 'checkin': 'checkins', 'profile': 'profile', 'core/reminder': 'reminders'}
+
+FEATURES = {
+    'atomic_task_create_v1': '本人设备原子创建任务及初始目标归属',
+    'task_events_v1': '按保存日期查询授权范围内任务及目标动态',
+    'history_search_v1': '按权限查询业务内容及旧修订',
+    'report_coverage_v1': '报告覆盖日期、开始时间及模型名称',
+    'goal_created_at_v1': '目标首次创建时间',
+}
+
+
+class ClientCapabilities(StrictModel):
+    api_version: int
+    client_id: str
+    role: str
+    scopes: list[str]
+    offline: str
+    reminder_days: int
+    timezone: str
+    notifications: bool
+    features: dict[str, bool] = Field(description='Missing or false means unsupported. Stable names: ' + ', '.join(FEATURES))
+
+
+class HistorySource(StrictModel):
+    id: str
+    version: int | None
+
+
+class TaskEventItem(StrictModel):
+    id: str
+    task_id: str | None
+    entity_id: str | None = None
+    version: int
+    time: str
+    title: str
+    action: str
+    source: HistorySource
+
+
+class HistoryItem(StrictModel):
+    id: str
+    kind: str
+    title: str
+    updated_at: str
+    version: int | None
+    matches: list[dict]
+    history: list[dict]
+    record: bool
+    source: HistorySource
+
+
+class TaskEventPage(StrictModel):
+    items: list[TaskEventItem]
+    total: int
+    next_offset: int | None
+    snapshot_version: int
+
+
+class HistoryPage(TaskEventPage):
+    items: list[HistoryItem]
 
 
 class Login(StrictModel):
@@ -53,7 +115,7 @@ class AgentGrant(PairStart):
 
 class Command(StrictModel):
     request_id: UUID
-    operation: Literal['create_record', 'revise_record', 'write_entity', 'decide', 'settings', 'model_binding', 'reminder', 'receipt']
+    operation: Literal['create_task', 'create_record', 'revise_record', 'write_entity', 'decide', 'settings', 'model_binding', 'reminder', 'receipt']
     id: str | None = Field(default=None, max_length=200)
     kind: str | None = Field(default=None, max_length=50)
     expected_version: int = Field(default=0, ge=0)
@@ -93,6 +155,8 @@ def read_items(store, principal, resource):
 
 
 def _read_items(store, principal, resource):
+    if resource not in RESOURCES:
+        raise StoreError('未知资料类型。', 404)
     require(principal, 'read:' + resource)
     if resource in {'goals', 'tasks', 'logs', 'checkins', 'reports'}:
         # Reports use the same redaction as integrations, excluding model endpoints.
@@ -100,17 +164,22 @@ def _read_items(store, principal, resource):
         if resource == 'goals':
             for item in result:
                 item['data'] = store.entities[item['id']].data
+                item['created_at'] = store.entities[item['id']].created_at
         if resource == 'tasks':
             for item in result:
                 record = store.records[item['id']]
                 item['record'] = record.model_dump(mode='json')
                 tracking = store.entities.get('tracking:' + item['id'])
                 item['tracking'] = tracking.model_dump(mode='json') if tracking else None
+        if resource == 'reports':
+            for item in result:
+                entity = store.entities[item['id']]
+                item.update({k: entity.data.get(k) for k in ['window_start', 'window_end', 'started_at', 'model']})
         return result
     if resource == 'records':
         return [r.model_dump(mode='json') for r in store.records.values() if r.kind != 'task']
-    if resource in {'states', 'profile', 'reminders'}:
-        kind = {'states': 'state', 'profile': 'profile', 'reminders': 'core/reminder'}[resource]
+    if resource in {'profile', 'reminders'}:
+        kind = {'profile': 'profile', 'reminders': 'core/reminder'}[resource]
         return [e.model_dump(mode='json') for e in store.entities.values() if e.kind == kind]
     if resource == 'settings':
         service = ConfigService(store)
@@ -126,6 +195,8 @@ def _read_items(store, principal, resource):
             if p.status == 'pending' and 'read:' + target in principal['scopes']:
                 items.append({'type': 'record', **p.model_dump(mode='json')})
         for e in store.entities.values():
+            if e.data.get('target_kind') == 'state':
+                continue
             if e.kind not in {'change', 'suggestion', 'core/client-change', 'core/config-change'} or e.data.get('status') != 'pending':
                 continue
             if e.kind == 'core/config-change':
@@ -175,6 +246,15 @@ def execute_command(app, store, principal, command):
             item = extension(kind, value, identifier, before)
             return [], [], {'entity': item.model_dump(mode='json')}, [item]
         return store.transaction(request_id, 'client:' + operation, command.model_dump(mode='json'), prepare, extension=True)
+    if operation == 'create_task':
+        if principal['role'] != 'device':
+            raise StoreError('原子创建任务仅对本人设备开放。', 403)
+        require(principal, 'write:records')
+        require(principal, 'read:tasks')
+        require(principal, 'read:goals')
+        if not app.state.plugins.active('tracking'):
+            raise StoreError('任务插件未启用。', 409)
+        return create_task_with_tracking(store, CreateTask.model_validate({**data, 'request_id': request_id}))
     if operation == 'create_record':
         require(principal, 'write:records')
         request = CreateRecord.model_validate({**data, 'request_id': request_id})
@@ -196,7 +276,7 @@ def execute_command(app, store, principal, command):
         if kind not in KINDS:
             raise StoreError('不允许写入此资料类型。', 403)
         require(principal, 'read:' + KINDS[kind])
-        owner = {'goal': 'tracking', 'tracking': 'tracking', 'log': 'journal', 'checkin': 'journal', 'state': 'journal'}.get(kind)
+        owner = {'goal': 'tracking', 'tracking': 'tracking', 'log': 'journal', 'checkin': 'journal'}.get(kind)
         if owner and not app.state.plugins.active(owner):
             raise StoreError('所属插件未启用。', 409)
         important = kind in {'goal', 'tracking', 'profile', 'core/reminder'} or command.id
@@ -280,7 +360,7 @@ def execute_command(app, store, principal, command):
         if not pending and item.data.get('status') == 'pending':
             raise StoreError('此提案需要在网页管理界面确认。', 403)
         target_kind = item.data.get('target_kind', item.kind)
-        owner = {'goal': 'tracking', 'tracking': 'tracking', 'log': 'journal', 'checkin': 'journal', 'state': 'journal', 'suggestion': 'analysis'}.get(target_kind)
+        owner = {'goal': 'tracking', 'tracking': 'tracking', 'log': 'journal', 'checkin': 'journal', 'suggestion': 'analysis'}.get(target_kind)
         if owner and not app.state.plugins.active(owner):
             raise StoreError('所属插件未启用。', 409)
         return service.decide(command.id, decision)
@@ -309,7 +389,7 @@ def register_clients(app, store):
             owner(request)
             from .access import DEVICE_SCOPES
             return {'id': 'owner', 'role': 'owner', 'scopes': sorted(DEVICE_SCOPES)}
-        return value
+        return {**value, 'scopes': [s for s in value['scopes'] if s != 'read:states']}
     def reload():
         store.reload(); store.require_healthy()
 
@@ -357,12 +437,17 @@ def register_clients(app, store):
     @app.post(PREFIX + '/auth/refresh')
     def refresh(payload: Refresh): return access.refresh(payload.refresh_token)
 
-    @app.get(PREFIX + '/capabilities')
+    @app.get(PREFIX + '/capabilities', response_model=ClientCapabilities)
     def capabilities(request: Request):
         p = principal(request)
         return {'api_version': 1, 'client_id': p['id'], 'role': p['role'], 'scopes': p['scopes'],
                 'offline': 'cache-and-drafts', 'reminder_days': 30, 'timezone': 'Asia/Shanghai',
-                'notifications': p.get('notifications', False)}
+                'notifications': p.get('notifications', False), 'features': {
+                    'atomic_task_create_v1': p['role'] == 'device' and {'write:records','read:tasks','read:goals'} <= set(p['scopes']) and app.state.plugins.active('tracking'),
+                    'task_events_v1': bool({'read:tasks','read:goals'} & set(p['scopes'])) and app.state.plugins.active('tracking'),
+                    'history_search_v1': any('read:' + r in p['scopes'] and (r not in PLUGINS or app.state.plugins.active(PLUGINS[r])) for r in set(HISTORY_RESOURCES.values()) - {'reminders'}),
+                    'report_coverage_v1': 'read:reports' in p['scopes'] and app.state.plugins.active('analysis'),
+                    'goal_created_at_v1': 'read:goals' in p['scopes'] and app.state.plugins.active('tracking')}}
 
     @app.get(PREFIX + '/snapshot')
     def snapshot(request: Request):
@@ -422,10 +507,10 @@ def register_clients(app, store):
             reload(); items = read_items(store, p, resource)
             if day:
                 parsed = app.state.parse_day(day).isoformat()
-                items = [e for e in items if (e.get('date') or e.get('planned_date') or e.get('due') or e.get('data', {}).get('date') or str(e.get('updated_at', ''))[:10]) == parsed]
+                items = [e for e in items if ((e.get('window_end') if e.get('kind') == 'scheduled_run' else datetime.fromisoformat(e.get('started_at') or e['updated_at']).astimezone(TZ).date().isoformat()) if resource == 'reports' else (e.get('date') or e.get('planned_date') or e.get('due') or e.get('data', {}).get('date') or str(e.get('updated_at', ''))[:10])) == parsed]
             if goal_id: items = [e for e in items if e['id'] == goal_id or e.get('goal_id') == goal_id or e.get('data', {}).get('goal_id') == goal_id or goal_id in e.get('sources', {})]
             if task_id: items = [e for e in items if e['id'] == task_id or e.get('task_id') == task_id or task_id in e.get('sources', {})]
-            items.sort(key=lambda e: (str(e.get('updated_at', '')), e['id']), reverse=True)
+            items.sort(key=lambda e: (datetime.fromisoformat(e.get('started_at') or e['updated_at']).timestamp() if resource == 'reports' else str(e.get('updated_at', '')), e['id']), reverse=True)
             return {'items': items[offset:offset + limit], 'total': len(items), 'next_offset': offset + limit if offset + limit < len(items) else None}
 
     @app.post(PREFIX + '/commands')
@@ -504,17 +589,47 @@ def register_clients(app, store):
         p = analysis_user(request)
         return public_result(app.state.scheduler.pause(payload.model_copy(update={'request_id': uuid5(NAMESPACE_URL, p['id'] + ':' + str(payload.request_id))})))
 
+    @app.get(PREFIX + '/task-events', response_model=TaskEventPage)
+    def task_events(request: Request, day: date | None = None, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=100)):
+        p = principal(request)
+        if not {'read:tasks','read:goals'} & set(p['scopes']):
+            raise StoreError('没有动态读取权限。', 403)
+        if not app.state.plugins.active('tracking'):
+            raise StoreError('任务插件未启用。', 409)
+        allowed = set()
+        if 'read:tasks' in p['scopes']: allowed.add('task')
+        if 'read:goals' in p['scopes']: allowed.add('goal')
+        if {'task','goal'} <= allowed: allowed.add('tracking')
+        with store.mutex:
+            items = task_event_items(store, day or datetime.now(TZ).date(), allowed)['items']
+            for item in items:
+                item['source'] = {'id': item.get('entity_id') or item['task_id'], 'version': item['version']}
+            return {'items': items[offset:offset+limit], 'total': len(items), 'next_offset': offset+limit if offset+limit<len(items) else None, 'snapshot_version': store.sequence}
+
+    @app.get(PREFIX + '/history', response_model=HistoryPage)
+    def history_search(request: Request, q: str = Query('', max_length=500), day: date | None = None,
+                       kind: str = Query('', max_length=50), offset: int = Query(0, ge=0), limit: int = Query(30, ge=1, le=100)):
+        p = principal(request)
+        if not any('read:' + r in p['scopes'] for r in set(HISTORY_RESOURCES.values()) - {'reminders'}):
+            raise StoreError('没有历史读取权限。', 403)
+        with store.mutex:
+            result = search_history(store, q, day, kind, offset, limit,
+                                    lambda k,v: permitted(app,p,k,v), project)
+            for item in result['items']:
+                item['source'] = {'id': item['id'], 'version': item['version']}
+            return {**result, 'snapshot_version': store.sequence}
+
     @app.get(PREFIX + '/history/{identifier}')
     def history(identifier: str, request: Request):
         p = principal(request)
         with store.mutex:
             reload()
             record = store.records.get(identifier)
-            item = store.entities.get(identifier)
-            if record:
-                require(p, 'read:tasks' if record.kind == 'task' else 'read:records')
-                return {'items': [r.model_dump(mode='json') for r in store.history[identifier]]}
-            if not item or item.kind not in KINDS: raise StoreError('未找到可读取的历史。', 404)
-            require(p, 'read:' + KINDS[item.kind])
-            return {'items': [e.model_dump(mode='json') for path in store.files
-                             for e in getattr(decode_event(path.read_bytes()), 'entities', []) if e.id == identifier]}
+            item = record or store.entities.get(identifier) or store.proposals.get(identifier)
+            if not item: raise StoreError('未找到可读取的历史。', 404)
+            kind = item.kind if hasattr(item, 'kind') else 'proposal'
+            if kind == 'core/config' and identifier == 'config:user': kind = 'profile'
+            versions = store.history[identifier] if record else store.entity_history.get(identifier, [item])
+            if not all(permitted(app, p, kind, v.model_dump(mode='json')) for v in versions):
+                raise StoreError('没有这项历史读取授权。', 403)
+            return {'items': [project(kind, v.model_dump(mode='json')) for v in versions]}
