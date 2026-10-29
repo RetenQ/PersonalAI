@@ -23,11 +23,12 @@ button, input, select, textarea, a { transition: background-color .16s ease, bor
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible,
 .module :focus-visible, .tracking-dialog :focus-visible { outline: 2px solid #a65c35; outline-offset: 3px; }
 button:disabled { opacity: .5; }
-input, select, textarea { border-color: #d7d9cd; border-radius: 5px; background: #fff; color: var(--ink); font-size: 13px; }
+input, select, textarea { border-color: #d7d9cd; border-radius: 5px; background: #fff; color: var(--ink); font-size: 13px; max-width: 100%; }
 input, select { min-height: 40px; }
 input:hover, select:hover, textarea:hover { border-color: #a7ac9b; }
 input::placeholder, textarea::placeholder { color: #7d8077; }
-label { color: #575b50; }
+/* Long option labels must not impose an intrinsic minimum on grid/flex forms. */
+label { color: #575b50; min-width: 0; }
 .sidebar { width: 218px; padding: 28px 16px 20px; background: #eeefe8; border-right: 1px solid #daddd0; }
 /* Short landscape viewports must still reach every fixed sidebar control. */
 @media (min-width:651px) { .sidebar { overflow-y: auto; } .sidebar > * { flex-shrink: 0; } }

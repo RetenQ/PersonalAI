@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 test('登录、配对、Agent 提案和本人确认共用一份历史',async({page,playwright},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await expect(page.getByRole('heading',{name:'回到你的空间'})).toBeVisible();
+ await page.goto('/');await expect(page.getByRole('heading',{name:'登录'})).toBeVisible();
  await page.getByLabel('管理员密码').fill('isolated-browser-test-password');await page.getByRole('button',{name:'登录',exact:true}).click();
  await page.getByRole('navigation',{name:'主要导航'}).getByRole('button',{name:'设置',exact:true}).click();
- const panel=page.getByRole('region',{name:'设备、Agent 与提醒'});
+ const panel=page.getByRole('region',{name:'设备与 Agent'});
  await expect(panel.getByRole('heading',{name:'手机配对'})).toBeVisible();
  const mobile=await playwright.request.newContext({baseURL:'http://127.0.0.1:19766'});
  const pair=await (await mobile.post('/api/clients/v1/pairings',{data:{name:'browser-contract-'+info.project.name}})).json();
@@ -27,6 +27,6 @@ test('登录、配对、Agent 提案和本人确认共用一份历史',async({pa
  const tasks=await (await agent.get('/api/clients/v1/resources/tasks')).json();expect(tasks.items.some((t:any)=>t.text===text)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.screenshot({path:info.outputPath('client-settings.png'),fullPage:true});
- await panel.getByRole('button',{name:'退出登录'}).click();await expect(page.getByRole('heading',{name:'回到你的空间'})).toBeVisible();
+ await panel.getByRole('button',{name:'退出登录'}).click();await expect(page.getByRole('heading',{name:'登录'})).toBeVisible();
  expect(errors).toEqual([]);await mobile.dispose();await device.dispose();await agent.dispose();
 });

@@ -1,6 +1,8 @@
 # 测试服务器运维与多端交接
 
-更新时间：2026-10-28。这是已经安装的独立测试实例，不是正式资料环境。手机浏览器本人实测确认见 [10 月 28 日记录](SERVER_VALIDATION_2026_10_28.md)，公网部署进展见 [10 月 27 日记录](SERVER_VALIDATION_2026_10_27.md)，Linux 回归见 [10 月 26 日记录](SERVER_VALIDATION_2026_10_26.md)。
+更新时间：2026-10-29。这是已经安装的独立测试实例，不是正式资料环境。手机浏览器本人实测确认见 [10 月 28 日记录](SERVER_VALIDATION_2026_10_28.md)，公网部署进展见 [10 月 27 日记录](SERVER_VALIDATION_2026_10_27.md)，Linux 回归见 [10 月 26 日记录](SERVER_VALIDATION_2026_10_26.md)。
+
+本轮已将后端和网页更新到 **218c5e7-server1**，公网可供新版 APK 联调。最新版本、35 事件备份/恢复、只读 HTTPS 验证及设备验收边界见 [10 月 29 日部署记录](SERVER_VALIDATION_2026_10_29.md)。
 
 ## 实际入口与版本
 
@@ -8,16 +10,16 @@
 |---|---|
 | 当前 HTTPS | `https://personalai.retenq.cloud`，允许公网登录；Let's Encrypt 可信证书 |
 | DNS | `personalai.retenq.cloud CNAME retenq.cloud`，已添加并公共查询确认 |
-| 基础代码 | main / `27c342b1829f4b60447b4835f9307faa1530675e`，接手时远端一致 |
-| 部署版本 | `27c342b-server2`，基础代码加 `frontend/src/theme.css` 的窄屏修复；后端业务代码未修改 |
-| 工作区 | `/root/PersonalAI`；本次 GitHub 同步交接文档，源码修复、部署模板、维护脚本和测试仍未提交 |
-| 当前源码 | `/opt/personalai-test/current` → `/opt/personalai-test/releases/27c342b-server2` |
-| 前版保留 | `/opt/personalai-test/releases/27c342b-server1` |
+| 基础代码 | main / `218c5e7067d98ea498107f8c3675bb121cee08f1`，2026-10-29 fetch 时远端一致 |
+| 部署版本 | `218c5e7-server1`，新版后端与网页保留既有 CSS 窄屏修复；未额外修改后端业务实现 |
+| 工作区 | `/root/PersonalAI`；本次同步交接文档、CSS/浏览器测试修正及两份公网验证脚本；旧部署和维护工具仍未提交 |
+| 当前源码 | `/opt/personalai-test/current` → `/opt/personalai-test/releases/218c5e7-server1` |
+| 前版保留 | `/opt/personalai-test/releases/27c342b-server2`（上一可用版本），server1 亦保留 |
 | 运行环境 | `/opt/personalai-test/venv`，系统 Python 3.12.13；editable 安装完整源码，含构建网页 |
 | 服务 | `personalai-test.service`，开机自启，账户 `personalai-test`，单进程 |
 | 后端监听 | `127.0.0.1:8765` |
 | 配置 | `/etc/personalai-test/server.json`，`public_origin=https://personalai.retenq.cloud` |
-| 数据 | `/var/lib/personalai-test/data`，0700；只含标记为 SERVER-VALIDATION 的测试案例 |
+| 数据 | `/var/lib/personalai-test/data`，0700；保留现有记录，本轮不追加测试业务事件 |
 | 备份 | `/var/lib/personalai-test/backups`，0700；没有周期任务/预设保留期限 |
 | 主密钥 | `/etc/personalai-test/master.key`，32 字节，0600，服务账户所有；单独保管 |
 | 管理员凭据 | `/etc/personalai-test/owner-password.cred`，root-only 的 systemd host-key 加密副本 |
@@ -25,11 +27,11 @@
 | HTTPS 证书 | `/etc/letsencrypt/live/personalai.retenq.cloud/`；到期 2027-01-24 23:16:29 UTC |
 | 证书续期 | `personalai-cert-renew.timer`；每日两次检查，仅处理本域名；成功后校验并重载 Nginx |
 | 系统服务文件 | `/etc/systemd/system/personalai-test.service` |
-| 构建校验/补丁 | 当前发布目录的 `deploy/BUILD_SHA256`、`deploy/BASE_COMMIT`、`deploy/server-layout.patch` |
+| 构建校验/补丁 | 当前发布目录的 `deploy/RELEASE_SHA256.json`、`deploy/BASE_COMMIT`、`deploy/server-layout.patch` |
 
 未导入私人画像或正式资料；没有安装 Android 工具链。当前管理员已初始化，密码没有写入 Git、文档、请求 URL 或日志。
 
-本文中的新增维护脚本及部署模板位于服务器工作区，本次文档提交未包含这些实现文件；仅从 GitHub 拉取本次提交不会获得它们。已有服务继续使用当前发布目录，不因文档同步重启或切换。
+本次提交包含 `scripts/validate_upgrade_readonly.py`、`scripts/validate_test_web.mjs`。旧部署模板、初始化/DNS/密码维护脚本、写入式验收脚本及密码维护测试仍位于服务器工作区，未纳入本次提交。运行服务已按授权升级，Git 同步本身不会再切换或重启服务。
 
 ## 登录凭据领取
 
@@ -78,7 +80,9 @@ Nginx 访问日志关闭，错误日志为 `/var/log/nginx/personalai-test-error
 
 正常使用已登录网页的“备份与恢复校验”导出，并把下载文件移至受保护目录。备份是明文资料，不能放入公网静态目录。应用导出会在临时目录恢复校验；它不含 `.secrets`、`.scheduler`、`.delivery`，不会恢复管理员/设备/Agent 凭据、模型/推送密钥或自动调用许可。
 
-本轮已验证的备份：`/var/lib/personalai-test/backups/20261027T082004-f242c2.zip`。
+10 月 29 日升级备份为 `/var/lib/personalai-test/backups/pre-218c5e7-20261029/`，包含完整运行快照、配置、原 venv 及业务 ZIP，新代码独立恢复验证 35 个事件一致；恢复与回滚方法见最新部署记录。
+
+以下为 10 月 27 日历史已验证备份：`/var/lib/personalai-test/backups/20261027T082004-f242c2.zip`。
 
 - SHA-256：`00b3dd9025dbe9187ccd4a3c277a228938541d0ce41a1c8dba52ed29948d9557`
 - 已恢复到 `/var/lib/personalai-test/restore-validation-20261027T082004-f242c2`，30 个事件逐文件 SHA-256 一致。
@@ -116,7 +120,7 @@ sudo certbot renew --cert-name personalai.retenq.cloud --dry-run \
 
 本次 DNS 授权仅在隐藏终端和进程内存中使用，未写入配置、项目或运行日志；凭据在聊天中出现过，用户应撤销/轮换。撤销该 API 密钥不会影响已创建的解析或 HTTP-01 续期。DNS 工具 `scripts/configure_public_dns.py` 和独立 `.cache/dns-venv` 可保留作为运维工具，没有保存授权。
 
-原 `retenq.cloud` 业务配置校验一致，证书和续期设置未修改。原证书仍于北京时间 **2026-10-28 06:59:59** 到期，需另行处理；它与 PersonalAI 独立证书的有效期无关。
+原 `retenq.cloud` 业务配置校验一致，证书和续期设置未修改。此前观察的原证书到期时间为北京时间 **2026-10-28 06:59:59**，本轮未复核其是否已续期，需另行核验；它与 PersonalAI 独立证书的有效期无关。
 
 已通过服务器发起的真实域名请求及浏览器验收；服务器网络存在代理/Fake-IP。2026-10-28 本人确认手机浏览器验证通过；设备型号、浏览器版本及网络类型未提供，不推定使用手机流量，不扩展为所有外部网络或完整真机业务流程通过。下一步为实际 APK 配对与同步联调。
 
@@ -125,7 +129,7 @@ sudo certbot renew --cert-name personalai.retenq.cloud --dry-run \
 向本机开发方交付 **HTTPS 根地址 `https://personalai.retenq.cloud`**，协议为 `v1`，前缀 `/api/clients/v1/`。APK 在本机 `E:\CodexProject\PersonalAI_Apk` 开发/构建，不把服务器管理员密码放入 APK。
 
 1. APK 填 HTTPS 根地址并申请配对，显示八位配对码。
-2. 本人登录网页 → 设置 → 设备、Agent 与提醒 → 填入码并批准。
+2. 本人登录网页 → 设置 → 设备与 Agent → 填入码并批准。
 3. APK 轮询领取一次性结果并安全保存设备令牌；验证 `capabilities`、`snapshot`，提交一条明确标记的测试日志，在网页核对。
 4. 用测试任务检查差异确认、拒绝及冲突；撤销设备后读写/刷新应失败。验收后不继续使用本轮自动测试生成的凭据，它们已全部撤销。
 
@@ -152,11 +156,13 @@ npx playwright test --config playwright.clients.config.ts
 
 Playwright 自带配置目前使用原 `.venv`（Python 3.13），后端 3.12 回归与实际 systemd 验收单独执行。WebKit 因本系统库依赖不足启动失败，不能计入通过项；可在受支持的独立测试环境补验，不能关闭依赖校验冒充通过。
 
-实际部署验收（会向测试目录追加案例、临时授权并重启测试服务）：
+当前数据可能包含用户记录，**不要直接运行旧 `validate_test_server.py`**：它会追加案例、临时授权并重启服务。需要写入式验证时先审查脚本，使用独立目录。
+
+本轮实际部署复验（管理员登录/退出、业务只读；无设备令牌，不代表实际设备 Bearer 验收）：
 
 ```sh
 cd /root/PersonalAI
-sudo /opt/personalai-test/venv/bin/python scripts/validate_test_server.py
+sudo /opt/personalai-test/venv/bin/python scripts/validate_upgrade_readonly.py
 sudo node scripts/validate_test_web.mjs
 ```
 
